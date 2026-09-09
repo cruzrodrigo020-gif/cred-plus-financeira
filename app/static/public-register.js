@@ -1,10 +1,30 @@
 const form=document.getElementById('registerForm');
 const btn=document.getElementById('submitBtn');
 const msg=document.getElementById('message');
+const selfie=document.getElementById('selfie');
+const MAX_SELFIE=5*1024*1024;
+
+selfie?.addEventListener('change',()=>{
+  msg.textContent='';
+  const file=selfie.files?.[0];
+  if(file&&file.size>MAX_SELFIE){
+    selfie.value='';
+    msg.textContent='A selfie deve ter no máximo 5 MB.';
+  }
+});
 
 form.addEventListener('submit',async e=>{
   e.preventDefault();
   msg.textContent='';
+  const file=selfie?.files?.[0];
+  if(!file){
+    msg.textContent='Envie uma selfie para concluir o cadastro.';
+    return;
+  }
+  if(file.size>MAX_SELFIE){
+    msg.textContent='A selfie deve ter no máximo 5 MB.';
+    return;
+  }
   btn.disabled=true;
   btn.textContent='Enviando cadastro...';
   try{
