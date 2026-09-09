@@ -17,15 +17,19 @@
     </div>
   </section>
 
-  <form id="registerForm" class="form-card">
-    <div class="section-title">Seus dados</div>
+  <form id="registerForm" class="form-card" enctype="multipart/form-data">
+    <div class="section-title">Identificação</div>
     <div class="grid">
       <label><span>Nome completo *</span><input name="name" required autocomplete="name"></label>
+      <label><span>Nome do cobrador *</span><input name="collector_name" required placeholder="Informe quem indicou ou atende você"></label>
+      <label><span>CPF *</span><input name="cpf" required inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label>
+      <label><span>RG *</span><input name="rg" required maxlength="30"></label>
       <label><span>WhatsApp *</span><input name="whatsapp" required inputmode="tel" placeholder="(91) 99999-9999"></label>
       <label><span>Telefone</span><input name="phone" inputmode="tel"></label>
       <label><span>E-mail</span><input name="email" type="email" autocomplete="email"></label>
       <label><span>Profissão</span><input name="profession"></label>
       <label><span>Empresa / trabalho</span><input name="company"></label>
+      <label class="wide selfie-field"><span>Selfie *</span><input id="selfie" name="selfie" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="user" required><small>Envie uma foto atual do rosto. Tamanho máximo: 5 MB.</small></label>
     </div>
 
     <div class="section-title">Endereço</div>
@@ -42,7 +46,7 @@
     <div class="section-title">Observações</div>
     <label><textarea name="notes" rows="4" placeholder="Se quiser, deixe uma observação para nossa equipe."></textarea></label>
 
-    <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Autorizo o envio e armazenamento destes dados para cadastro e atendimento pela CRED+ Financeira.</span></label>
+    <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Autorizo o envio e armazenamento dos dados informados, incluindo CPF, RG e selfie, para cadastro e atendimento pela CRED+ Financeira.</span></label>
 
     <button id="submitBtn" type="submit">Enviar cadastro</button>
     <div id="message" class="message" aria-live="polite"></div>
@@ -51,7 +55,7 @@
   <section id="success" class="success hidden">
     <div class="success-icon">✓</div>
     <h2>Cadastro enviado com sucesso</h2>
-    <p>Sua ficha já foi registrada no sistema da CRED+ Financeira.</p>
+    <p>Sua ficha e sua selfie já foram registradas no sistema da CRED+ Financeira.</p>
   </section>
 
   <footer>CRED+ Financeira • Cadastro online</footer>
