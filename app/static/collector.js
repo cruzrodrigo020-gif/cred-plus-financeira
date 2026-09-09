@@ -2,7 +2,7 @@ let TOKEN=localStorage.getItem('cp_collector_token')||'';
 let USER=null;
 let PAGE='home';
 const $=id=>document.getElementById(id);
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function fmt(d){if(!d)return '-';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d}
