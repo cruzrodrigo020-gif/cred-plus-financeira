@@ -2,16 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CRED+ Financeira • Premium V12</title>
+<title>CRED+ Financeira • Premium</title>
 <link rel="stylesheet" href="/static/v12.css">
 <link rel="stylesheet" href="/static/v12-collectors.css">
+<link rel="stylesheet" href="/static/v12-growth.css">
 </head>
 <body>
 <div id="login" class="login">
   <div class="login-card">
     <div class="login-mark">＋</div>
     <div class="brand">CRED<span>+</span></div>
-    <p><b>Financeira Premium V12</b><br><span class="muted">Gestão de clientes, contratos, parcelas, caixa e cobradores em um único painel.</span></p>
+    <p><b>Financeira Premium</b><br><span class="muted">Gestão de clientes, contratos, parcelas, cobradores, metas, rotas e risco em um único painel.</span></p>
     <div class="field"><label>Usuário</label><input id="loginUser" autocomplete="username"></div>
     <div class="field"><label>Senha</label><input id="loginPass" type="password" autocomplete="current-password"></div>
     <button class="btn btn-primary full" onclick="doLogin()">Entrar no painel</button>
@@ -19,7 +20,7 @@
   </div>
 </div>
 <div id="app" class="hidden">
-  <aside class="sidebar"><div class="side-brand"><div class="brand">CRED<span>+</span></div><div class="side-sub">FINANCEIRA • PREMIUM V12</div></div><div id="nav" class="nav"></div></aside>
+  <aside class="sidebar"><div class="side-brand"><div class="brand">CRED<span>+</span></div><div class="side-sub">FINANCEIRA • PREMIUM</div></div><div id="nav" class="nav"></div></aside>
   <main class="main">
     <div class="topbar"><div><h1 id="title">Dashboard</h1><div id="meta" class="top-meta"></div></div><div class="actions"><button class="glass" onclick="go(PAGE)">Atualizar</button><button class="glass" onclick="logout()">Sair</button></div></div>
     <div id="content"></div>
@@ -30,4 +31,5 @@
 <script src="/static/v12-core.js"></script>
 <script src="/static/v12-extra.js"></script>
 <script src="/static/v12-collectors.js"></script>
+<script src="/static/v12-growth.js"></script>
 </body></html>
