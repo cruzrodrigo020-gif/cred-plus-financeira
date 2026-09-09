@@ -27,30 +27,42 @@ def delete_contract(
 
     client_id = contract.client_id
     contract_number = contract.number
-    installments = s.query(Installment).filter_by(contract_id=contract.id).all()
-    installment_ids = [i.id for i in installments]
+    installment_ids = [
+        row[0] for row in s.query(Installment.id).filter(Installment.contract_id == contract_id).all()
+    ]
 
-    refs = [contract_number] + [f'INST-{iid}' for iid in installment_ids] + [f'ESTORNO-INST-{iid}' for iid in installment_ids]
+    refs = [contract_number]
+    refs += [f'INST-{iid}' for iid in installment_ids]
+    refs += [f'ESTORNO-INST-{iid}' for iid in installment_ids]
+
+    # Exclusão explícita em ordem de dependência para respeitar as FKs do PostgreSQL.
+    # 1) movimentos financeiros ligados ao contrato/parcela
     if refs:
-        cash_rows = s.query(Cash).filter(
+        s.query(Cash).filter(
             or_(
                 Cash.reference_id.in_(refs),
                 Cash.description.like(f'{contract_number}%'),
             )
-        ).all()
-        for row in cash_rows:
-            s.delete(row)
+        ).delete(synchronize_session=False)
 
-    for payment in s.query(Payment).filter_by(contract_id=contract.id).all():
-        s.delete(payment)
-    for item in installments:
-        s.delete(item)
-    s.delete(contract)
-    s.flush()
+    # 2) pagamentos apontam para parcelas e contrato
+    s.query(Payment).filter(Payment.contract_id == contract_id).delete(synchronize_session=False)
 
-    if s.query(Contract).filter_by(client_id=client_id).count() == 0:
-        for stop in s.query(CollectorRouteStop).filter_by(client_id=client_id).all():
-            s.delete(stop)
+    # 3) parcelas apontam para o contrato
+    s.query(Installment).filter(Installment.contract_id == contract_id).delete(synchronize_session=False)
+
+    # 4) só então o contrato pode ser removido
+    deleted = s.query(Contract).filter(Contract.id == contract_id).delete(synchronize_session=False)
+    if not deleted:
+        s.rollback()
+        raise HTTPException(404, 'Contrato não encontrado')
+
+    # Se o cliente ficou sem contratos, remove paradas de rota que ficaram sem finalidade.
+    remaining_contracts = s.query(Contract).filter(Contract.client_id == client_id).count()
+    if remaining_contracts == 0:
+        s.query(CollectorRouteStop).filter(
+            CollectorRouteStop.client_id == client_id
+        ).delete(synchronize_session=False)
 
     s.commit()
     log(s, user, 'CONTRACT_DELETE', f'id={contract_id};number={contract_number};client_id={client_id}')
@@ -69,7 +81,7 @@ def delete_client(
     if not client:
         raise HTTPException(404, 'Cliente não encontrado')
 
-    contracts_count = s.query(Contract).filter_by(client_id=client.id).count()
+    contracts_count = s.query(Contract).filter(Contract.client_id == client_id).count()
     if contracts_count > 0:
         raise HTTPException(
             409,
@@ -77,11 +89,20 @@ def delete_client(
         )
 
     client_name = client.name
-    for attachment in s.query(ClientAttachment).filter_by(client_id=client.id).all():
-        s.delete(attachment)
-    for stop in s.query(CollectorRouteStop).filter_by(client_id=client.id).all():
-        s.delete(stop)
-    s.delete(client)
+
+    # Limpa dependências diretas do cliente antes de apagar a ficha.
+    s.query(ClientAttachment).filter(
+        ClientAttachment.client_id == client_id
+    ).delete(synchronize_session=False)
+    s.query(CollectorRouteStop).filter(
+        CollectorRouteStop.client_id == client_id
+    ).delete(synchronize_session=False)
+
+    deleted = s.query(Client).filter(Client.id == client_id).delete(synchronize_session=False)
+    if not deleted:
+        s.rollback()
+        raise HTTPException(404, 'Cliente não encontrado')
+
     s.commit()
     log(s, user, 'CLIENT_DELETE', f'id={client_id};name={client_name}')
     return {'ok': True, 'client_id': client_id, 'name': client_name}
