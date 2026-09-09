@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<title>CRED+ • Cobrador</title>
+<link rel="stylesheet" href="/static/collector.css">
+</head>
+<body>
+<div id="login" class="login-screen">
+  <div class="login-card">
+    <div class="logo-mark">＋</div>
+    <div class="brand">CRED<span>+</span></div>
+    <div class="tag">APP DO COBRADOR</div>
+    <p>Entre com seu usuário de cobrador para acessar sua carteira, rota e cobranças.</p>
+    <label>Usuário</label>
+    <input id="loginUser" autocomplete="username" placeholder="Seu usuário">
+    <label>Senha</label>
+    <input id="loginPass" type="password" autocomplete="current-password" placeholder="Sua senha">
+    <button class="primary big" onclick="login()">Entrar</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div>
+      <div class="mini-brand">CRED<span>+</span> <small>COBRADOR</small></div>
+      <div id="hello" class="hello">Olá</div>
+    </div>
+    <button class="icon-btn" onclick="logout()">Sair</button>
+  </header>
+
+  <main id="content" class="content"></main>
+
+  <nav class="bottom-nav">
+    <button id="nav-home" onclick="go('home')"><span>⌂</span>Hoje</button>
+    <button id="nav-clients" onclick="go('clients')"><span>👥</span>Carteira</button>
+    <button id="nav-route" onclick="go('route')"><span>⌖</span>Rota</button>
+    <button id="nav-close" onclick="go('close')"><span>✓</span>Fechamento</button>
+  </nav>
+</div>
+
+<div id="sheet" class="sheet hidden"><div id="sheetBox" class="sheet-box"></div></div>
+<div id="toast" class="toast hidden"></div>
+<script src="/static/collector.js"></script>
+</body>
+</html>
