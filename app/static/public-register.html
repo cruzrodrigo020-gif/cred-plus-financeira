@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cadastro de Cliente • Credmasp Financeira</title>
+<link rel="stylesheet" href="/static/public-register.css">
+</head>
+<body>
+<main class="wrap">
+  <section class="brand-card">
+    <div class="mark">C+</div>
+    <div>
+      <div class="eyebrow">CREDMASP FINANCEIRA</div>
+      <h1>Cadastro de cliente</h1>
+      <p>Preencha seus dados. Sua ficha será enviada diretamente para o sistema interno da financeira.</p>
+    </div>
+  </section>
+
+  <form id="registerForm" class="form-card">
+    <div class="section-title">Seus dados</div>
+    <div class="grid">
+      <label><span>Nome completo *</span><input name="name" required autocomplete="name"></label>
+      <label><span>WhatsApp *</span><input name="whatsapp" required inputmode="tel" placeholder="(91) 99999-9999"></label>
+      <label><span>Telefone</span><input name="phone" inputmode="tel"></label>
+      <label><span>E-mail</span><input name="email" type="email" autocomplete="email"></label>
+      <label><span>Profissão</span><input name="profession"></label>
+      <label><span>Empresa / trabalho</span><input name="company"></label>
+    </div>
+
+    <div class="section-title">Endereço</div>
+    <div class="grid">
+      <label><span>CEP</span><input name="cep" inputmode="numeric" maxlength="9"></label>
+      <label><span>Rua</span><input name="street"></label>
+      <label><span>Número</span><input name="address_number"></label>
+      <label><span>Bairro</span><input name="neighborhood"></label>
+      <label><span>Cidade</span><input name="city"></label>
+      <label><span>Estado</span><input name="state" maxlength="2" placeholder="PA"></label>
+      <label class="wide"><span>Ponto de referência / complemento</span><input name="address_reference"></label>
+    </div>
+
+    <div class="section-title">Observações</div>
+    <label><textarea name="notes" rows="4" placeholder="Se quiser, deixe uma observação para nossa equipe."></textarea></label>
+
+    <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Autorizo o envio e armazenamento destes dados para cadastro e atendimento pela Credmasp Financeira.</span></label>
+
+    <button id="submitBtn" type="submit">Enviar cadastro</button>
+    <div id="message" class="message" aria-live="polite"></div>
+  </form>
+
+  <section id="success" class="success hidden">
+    <div class="success-icon">✓</div>
+    <h2>Cadastro enviado com sucesso</h2>
+    <p>Sua ficha já foi registrada no sistema da Credmasp Financeira.</p>
+  </section>
+
+  <footer>Credmasp Financeira • Cadastro online</footer>
+</main>
+<script src="/static/public-register.js"></script>
+</body>
+</html>
