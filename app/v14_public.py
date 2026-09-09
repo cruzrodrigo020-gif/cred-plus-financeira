@@ -1,4 +1,12 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+import json
+import os
+import smtplib
+import ssl
+import urllib.error
+import urllib.request
+from email.message import EmailMessage
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.v12_models import Client, ClientAttachment
@@ -20,16 +28,131 @@ def digits(value: str) -> str:
     return ''.join(ch for ch in (value or '') if ch.isdigit())
 
 
+def email_confirmation_configured() -> bool:
+    return bool(os.getenv('SMTP_HOST') and os.getenv('SMTP_FROM'))
+
+
+def whatsapp_confirmation_configured() -> bool:
+    return bool(
+        os.getenv('WHATSAPP_GRAPH_VERSION')
+        and os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+        and os.getenv('WHATSAPP_ACCESS_TOKEN')
+        and os.getenv('WHATSAPP_TEMPLATE_NAME')
+    )
+
+
+def send_email_confirmation(client_id: int, name: str, email: str) -> None:
+    if not email or not email_confirmation_configured():
+        return
+
+    host = os.getenv('SMTP_HOST', '').strip()
+    port = int(os.getenv('SMTP_PORT', '587'))
+    username = os.getenv('SMTP_USERNAME', '').strip()
+    password = os.getenv('SMTP_PASSWORD', '')
+    sender = os.getenv('SMTP_FROM', '').strip()
+    security = os.getenv('SMTP_SECURITY', 'starttls').strip().lower()
+
+    msg = EmailMessage()
+    msg['Subject'] = 'Cadastro recebido - CRED+ Financeira'
+    msg['From'] = sender
+    msg['To'] = email
+    msg.set_content(
+        f'Olá, {name}!\n\n'
+        'Recebemos seu cadastro na CRED+ Financeira com sucesso. '
+        'Sua ficha foi registrada e seguirá para conferência da nossa equipe.\n\n'
+        'Importante: o envio do cadastro não representa aprovação de crédito.\n\n'
+        'CRED+ Financeira'
+    )
+
+    try:
+        if security == 'ssl':
+            with smtplib.SMTP_SSL(host, port, timeout=15, context=ssl.create_default_context()) as smtp:
+                if username:
+                    smtp.login(username, password)
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP(host, port, timeout=15) as smtp:
+                smtp.ehlo()
+                if security == 'starttls':
+                    smtp.starttls(context=ssl.create_default_context())
+                    smtp.ehlo()
+                if username:
+                    smtp.login(username, password)
+                smtp.send_message(msg)
+        print(f'PUBLIC_CONFIRM_EMAIL_OK client_id={client_id}')
+    except Exception as exc:
+        print(f'PUBLIC_CONFIRM_EMAIL_ERROR client_id={client_id} error={type(exc).__name__}')
+
+
+def normalize_whatsapp(value: str) -> str:
+    phone = digits(value)
+    if len(phone) in (10, 11):
+        phone = '55' + phone
+    return phone
+
+
+def send_whatsapp_confirmation(client_id: int, name: str, whatsapp: str) -> None:
+    if not whatsapp or not whatsapp_confirmation_configured():
+        return
+
+    phone = normalize_whatsapp(whatsapp)
+    if len(phone) < 12:
+        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error=invalid_phone')
+        return
+
+    graph_version = os.getenv('WHATSAPP_GRAPH_VERSION', '').strip()
+    phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '').strip()
+    token = os.getenv('WHATSAPP_ACCESS_TOKEN', '').strip()
+    template_name = os.getenv('WHATSAPP_TEMPLATE_NAME', '').strip()
+    template_lang = os.getenv('WHATSAPP_TEMPLATE_LANG', 'pt_BR').strip() or 'pt_BR'
+
+    payload = {
+        'messaging_product': 'whatsapp',
+        'to': phone,
+        'type': 'template',
+        'template': {
+            'name': template_name,
+            'language': {'code': template_lang},
+            'components': [
+                {
+                    'type': 'body',
+                    'parameters': [{'type': 'text', 'text': name[:60]}],
+                }
+            ],
+        },
+    }
+
+    request = urllib.request.Request(
+        f'https://graph.facebook.com/{graph_version}/{phone_number_id}/messages',
+        data=json.dumps(payload).encode('utf-8'),
+        headers={
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+        },
+        method='POST',
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            response.read()
+        print(f'PUBLIC_CONFIRM_WHATSAPP_OK client_id={client_id}')
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error={type(exc).__name__}')
+    except Exception as exc:
+        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error={type(exc).__name__}')
+
+
 @router.post('/api/public/clients')
 async def public_client_create(
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     collector_name: str = Form(...),
     cpf: str = Form(...),
     rg: str = Form(...),
     birth_date: str = Form(''),
-    whatsapp: str = Form(''),
+    whatsapp: str = Form(...),
     phone: str = Form(''),
-    email: str = Form(''),
+    email: str = Form(...),
     marital_status: str = Form(''),
     profession: str = Form(''),
     company: str = Form(''),
@@ -49,6 +172,8 @@ async def public_client_create(
     name = name.strip()
     collector_name = collector_name.strip()
     rg_value = rg.strip()
+    whatsapp_value = whatsapp.strip()
+    email_value = email.strip().lower()
 
     if len(name) < 3:
         raise HTTPException(400, 'Informe o nome completo.')
@@ -56,6 +181,10 @@ async def public_client_create(
         raise HTTPException(400, 'Informe o nome do cobrador.')
     if not rg_value:
         raise HTTPException(400, 'Informe o RG.')
+    if len(normalize_whatsapp(whatsapp_value)) < 12:
+        raise HTTPException(400, 'Informe um WhatsApp válido com DDD.')
+    if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
+        raise HTTPException(400, 'Informe um e-mail válido.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
         raise HTTPException(400, 'É necessário autorizar o envio dos dados.')
 
@@ -84,9 +213,9 @@ async def public_client_create(
         cpf=cpf_value,
         rg=rg_value,
         birth_date=parse_date(birth_date, 'data de nascimento', optional=True),
-        whatsapp=whatsapp.strip(),
+        whatsapp=whatsapp_value,
         phone=phone.strip(),
-        email=email.strip(),
+        email=email_value,
         marital_status=marital_status.strip(),
         profession=profession.strip(),
         company=company.strip(),
@@ -126,8 +255,15 @@ async def public_client_create(
         s.rollback()
         raise
 
+    background_tasks.add_task(send_email_confirmation, client.id, name, email_value)
+    background_tasks.add_task(send_whatsapp_confirmation, client.id, name, whatsapp_value)
+
     return {
         'ok': True,
         'id': client.id,
         'message': 'Cadastro enviado com sucesso.',
+        'confirmations': {
+            'email_configured': email_confirmation_configured(),
+            'whatsapp_configured': whatsapp_confirmation_configured(),
+        },
     }
