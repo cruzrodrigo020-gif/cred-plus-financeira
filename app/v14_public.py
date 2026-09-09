@@ -22,10 +22,22 @@ ALLOWED_SELFIE_TYPES = {
     'image/heif',
 }
 MAX_SELFIE_SIZE = 5 * 1024 * 1024
+DEFAULT_COMPANY_WHATSAPP = '5591980459857'
 
 
 def digits(value: str) -> str:
     return ''.join(ch for ch in (value or '') if ch.isdigit())
+
+
+def company_whatsapp() -> str:
+    return digits(os.getenv('COMPANY_WHATSAPP', DEFAULT_COMPANY_WHATSAPP)) or DEFAULT_COMPANY_WHATSAPP
+
+
+def company_whatsapp_display() -> str:
+    value = company_whatsapp()
+    if value.startswith('55') and len(value) == 13:
+        return f'+55 ({value[2:4]}) {value[4:9]}-{value[9:]}'
+    return '+' + value
 
 
 def email_confirmation_configured() -> bool:
@@ -61,6 +73,7 @@ def send_email_confirmation(client_id: int, name: str, email: str) -> None:
         'Recebemos seu cadastro na CRED+ Financeira com sucesso. '
         'Sua ficha foi registrada e seguirá para conferência da nossa equipe.\n\n'
         'Importante: o envio do cadastro não representa aprovação de crédito.\n\n'
+        f'WhatsApp oficial: {company_whatsapp_display()}\n\n'
         'CRED+ Financeira'
     )
 
@@ -262,6 +275,7 @@ async def public_client_create(
         'ok': True,
         'id': client.id,
         'message': 'Cadastro enviado com sucesso.',
+        'company_whatsapp': company_whatsapp(),
         'confirmations': {
             'email_configured': email_confirmation_configured(),
             'whatsapp_configured': whatsapp_confirmation_configured(),
