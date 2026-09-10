@@ -12,13 +12,15 @@ from app.v12_growth import router as growth_router
 from app.v13_whatsapp import router as whatsapp_router
 from app.v13_delete import router as delete_router
 from app.v14_public import router as public_router
+from app.v15_lender import router as lender_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.7.0'
+app.version = '12.8.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
 app.include_router(public_router)
+app.include_router(lender_router)
 
 
 @app.get('/cobrador')
@@ -39,3 +41,23 @@ def public_register():
 @app.get('/cadastro/')
 def public_register_slash():
     return FileResponse('app/static/public-register.html')
+
+
+@app.get('/emprestador')
+def lender_app():
+    return FileResponse('app/static/lender.html')
+
+
+@app.get('/emprestador/')
+def lender_app_slash():
+    return FileResponse('app/static/lender.html')
+
+
+@app.get('/emprestador/cadastro')
+def lender_register():
+    return FileResponse('app/static/lender-register.html')
+
+
+@app.get('/emprestador/cadastro/')
+def lender_register_slash():
+    return FileResponse('app/static/lender-register.html')
