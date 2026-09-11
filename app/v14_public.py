@@ -11,14 +11,14 @@ from app.v12_helpers import db, parse_date
 
 router = APIRouter()
 
-ALLOWED_SELFIE_TYPES = {
+ALLOWED_IMAGE_TYPES = {
     'image/jpeg',
     'image/png',
     'image/webp',
     'image/heic',
     'image/heif',
 }
-MAX_SELFIE_SIZE = 5 * 1024 * 1024
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
 DEFAULT_COMPANY_WHATSAPP = '5591980459857'
 
 
@@ -114,9 +114,11 @@ async def public_client_create(
     state: str = Form(''),
     address: str = Form(''),
     address_reference: str = Form(''),
+    house_location: str = Form(...),
     notes: str = Form(''),
     consent: str = Form(...),
     selfie: UploadFile = File(...),
+    residence_proof: UploadFile = File(...),
     s: Session = Depends(db),
 ):
     name = name.strip()
@@ -124,6 +126,7 @@ async def public_client_create(
     rg_value = rg.strip()
     whatsapp_value = whatsapp.strip()
     email_value = email.strip().lower()
+    house_location_value = house_location.strip()
 
     if len(name) < 3:
         raise HTTPException(400, 'Informe o nome completo.')
@@ -135,6 +138,8 @@ async def public_client_create(
         raise HTTPException(400, 'Informe um WhatsApp válido com DDD.')
     if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
         raise HTTPException(400, 'Informe um e-mail válido.')
+    if len(house_location_value) < 5:
+        raise HTTPException(400, 'Informe a localização da casa.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
         raise HTTPException(400, 'É necessário autorizar o envio dos dados.')
 
@@ -146,15 +151,27 @@ async def public_client_create(
             raise HTTPException(409, 'Já existe um cadastro com este CPF.')
 
     selfie_type = (selfie.content_type or '').lower()
-    if selfie_type not in ALLOWED_SELFIE_TYPES:
+    if selfie_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(400, 'A selfie deve ser uma imagem JPG, PNG, WEBP ou HEIC.')
     selfie_data = await selfie.read()
     if not selfie_data:
         raise HTTPException(400, 'Envie uma selfie.')
-    if len(selfie_data) > MAX_SELFIE_SIZE:
+    if len(selfie_data) > MAX_IMAGE_SIZE:
         raise HTTPException(400, 'A selfie deve ter no máximo 5 MB.')
 
-    client_notes = f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}.'
+    proof_type = (residence_proof.content_type or '').lower()
+    if proof_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(400, 'O comprovante de residência deve ser uma foto JPG, PNG, WEBP ou HEIC.')
+    proof_data = await residence_proof.read()
+    if not proof_data:
+        raise HTTPException(400, 'Envie a foto do comprovante de residência.')
+    if len(proof_data) > MAX_IMAGE_SIZE:
+        raise HTTPException(400, 'O comprovante de residência deve ter no máximo 5 MB.')
+
+    client_notes = (
+        f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}. '
+        f'Localização da casa: {house_location_value}.'
+    )
     if notes.strip():
         client_notes += ' ' + notes.strip()
 
@@ -190,7 +207,7 @@ async def public_client_create(
     try:
         s.add(client)
         s.flush()
-        attachment = ClientAttachment(
+        selfie_attachment = ClientAttachment(
             client_id=client.id,
             category='photo',
             filename=(selfie.filename or f'selfie-{client.id}.jpg')[:255],
@@ -198,7 +215,16 @@ async def public_client_create(
             size=len(selfie_data),
             data=selfie_data,
         )
-        s.add(attachment)
+        proof_attachment = ClientAttachment(
+            client_id=client.id,
+            category='document',
+            filename=('comprovante-residencia-' + (residence_proof.filename or f'{client.id}.jpg'))[:255],
+            content_type=proof_type,
+            size=len(proof_data),
+            data=proof_data,
+        )
+        s.add(selfie_attachment)
+        s.add(proof_attachment)
         s.commit()
         s.refresh(client)
     except Exception:
