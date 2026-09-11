@@ -1,9 +1,6 @@
-import json
 import os
 import smtplib
 import ssl
-import urllib.error
-import urllib.request
 from email.message import EmailMessage
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
@@ -42,15 +39,6 @@ def company_whatsapp_display() -> str:
 
 def email_confirmation_configured() -> bool:
     return bool(os.getenv('SMTP_HOST') and os.getenv('SMTP_FROM'))
-
-
-def whatsapp_confirmation_configured() -> bool:
-    return bool(
-        os.getenv('WHATSAPP_GRAPH_VERSION')
-        and os.getenv('WHATSAPP_PHONE_NUMBER_ID')
-        and os.getenv('WHATSAPP_ACCESS_TOKEN')
-        and os.getenv('WHATSAPP_TEMPLATE_NAME')
-    )
 
 
 def send_email_confirmation(client_id: int, name: str, email: str) -> None:
@@ -102,57 +90,6 @@ def normalize_whatsapp(value: str) -> str:
     if len(phone) in (10, 11):
         phone = '55' + phone
     return phone
-
-
-def send_whatsapp_confirmation(client_id: int, name: str, whatsapp: str) -> None:
-    if not whatsapp or not whatsapp_confirmation_configured():
-        return
-
-    phone = normalize_whatsapp(whatsapp)
-    if len(phone) < 12:
-        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error=invalid_phone')
-        return
-
-    graph_version = os.getenv('WHATSAPP_GRAPH_VERSION', '').strip()
-    phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '').strip()
-    token = os.getenv('WHATSAPP_ACCESS_TOKEN', '').strip()
-    template_name = os.getenv('WHATSAPP_TEMPLATE_NAME', '').strip()
-    template_lang = os.getenv('WHATSAPP_TEMPLATE_LANG', 'pt_BR').strip() or 'pt_BR'
-
-    payload = {
-        'messaging_product': 'whatsapp',
-        'to': phone,
-        'type': 'template',
-        'template': {
-            'name': template_name,
-            'language': {'code': template_lang},
-            'components': [
-                {
-                    'type': 'body',
-                    'parameters': [{'type': 'text', 'text': name[:60]}],
-                }
-            ],
-        },
-    }
-
-    request = urllib.request.Request(
-        f'https://graph.facebook.com/{graph_version}/{phone_number_id}/messages',
-        data=json.dumps(payload).encode('utf-8'),
-        headers={
-            'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json',
-        },
-        method='POST',
-    )
-
-    try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            response.read()
-        print(f'PUBLIC_CONFIRM_WHATSAPP_OK client_id={client_id}')
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
-        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error={type(exc).__name__}')
-    except Exception as exc:
-        print(f'PUBLIC_CONFIRM_WHATSAPP_ERROR client_id={client_id} error={type(exc).__name__}')
 
 
 @router.post('/api/public/clients')
@@ -269,7 +206,6 @@ async def public_client_create(
         raise
 
     background_tasks.add_task(send_email_confirmation, client.id, name, email_value)
-    background_tasks.add_task(send_whatsapp_confirmation, client.id, name, whatsapp_value)
 
     return {
         'ok': True,
@@ -278,6 +214,5 @@ async def public_client_create(
         'company_whatsapp': company_whatsapp(),
         'confirmations': {
             'email_configured': email_confirmation_configured(),
-            'whatsapp_configured': whatsapp_confirmation_configured(),
         },
     }
