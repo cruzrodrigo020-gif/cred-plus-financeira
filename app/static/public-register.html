@@ -41,12 +41,14 @@
       <label><span>Cidade</span><input name="city"></label>
       <label><span>Estado</span><input name="state" maxlength="2" placeholder="PA"></label>
       <label class="wide"><span>Ponto de referência / complemento</span><input name="address_reference"></label>
+      <label class="wide"><span>Localização da casa *</span><input name="house_location" required placeholder="Cole aqui o link da localização ou as coordenadas"><small>Ex.: link compartilhado do Google Maps ou coordenadas da residência.</small></label>
+      <label class="wide selfie-field"><span>Foto do comprovante de residência *</span><input id="residenceProof" name="residence_proof" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" required><small>Fotografe o comprovante com os dados legíveis. Tamanho máximo: 5 MB.</small></label>
     </div>
 
     <div class="section-title">Observações</div>
     <label><textarea name="notes" rows="4" placeholder="Se quiser, deixe uma observação para nossa equipe."></textarea></label>
 
-    <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Autorizo o envio e armazenamento dos dados informados, incluindo CPF, RG e selfie, para cadastro e atendimento pela CRED+ Financeira.</span></label>
+    <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Autorizo o envio e armazenamento dos dados informados, incluindo CPF, RG, selfie, localização da residência e comprovante de residência, para cadastro e atendimento pela CRED+ Financeira.</span></label>
 
     <button id="submitBtn" type="submit">Enviar cadastro</button>
     <div id="message" class="message" aria-live="polite"></div>
@@ -55,7 +57,7 @@
   <section id="success" class="success hidden">
     <div class="success-icon">✓</div>
     <h2>Cadastro enviado com sucesso</h2>
-    <p>Sua ficha e sua selfie já foram registradas no sistema da CRED+ Financeira.</p>
+    <p>Sua ficha, selfie, localização e comprovante de residência já foram registrados no sistema da CRED+ Financeira.</p>
     <p style="margin-top:12px">WhatsApp oficial: <a href="https://wa.me/5591980459857" target="_blank" rel="noopener" style="color:#71c0ff;font-weight:800;text-decoration:none">(91) 98045-9857</a></p>
   </section>
 
