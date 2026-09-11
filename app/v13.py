@@ -12,12 +12,10 @@ from app.v12_growth import router as growth_router
 from app.v13_whatsapp import router as whatsapp_router
 from app.v13_delete import router as delete_router
 from app.v14_public import router as public_router
-from app import v14_whatsapp_debug  # ativa diagnóstico seguro de falhas da API do WhatsApp
-from app import v14_retry_once  # repete uma única vez o envio que falhou para diagnóstico
 from app.v15_lender import router as lender_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.8.2'
+app.version = '12.8.3'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
