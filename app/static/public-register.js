@@ -2,27 +2,42 @@ const form=document.getElementById('registerForm');
 const btn=document.getElementById('submitBtn');
 const msg=document.getElementById('message');
 const selfie=document.getElementById('selfie');
-const MAX_SELFIE=5*1024*1024;
+const residenceProof=document.getElementById('residenceProof');
+const MAX_IMAGE=5*1024*1024;
 
-selfie?.addEventListener('change',()=>{
+function validateImageInput(input,label){
   msg.textContent='';
-  const file=selfie.files?.[0];
-  if(file&&file.size>MAX_SELFIE){
-    selfie.value='';
-    msg.textContent='A selfie deve ter no máximo 5 MB.';
+  const file=input?.files?.[0];
+  if(file&&file.size>MAX_IMAGE){
+    input.value='';
+    msg.textContent=`${label} deve ter no máximo 5 MB.`;
+    return false;
   }
-});
+  return true;
+}
+
+selfie?.addEventListener('change',()=>validateImageInput(selfie,'A selfie'));
+residenceProof?.addEventListener('change',()=>validateImageInput(residenceProof,'O comprovante de residência'));
 
 form.addEventListener('submit',async e=>{
   e.preventDefault();
   msg.textContent='';
-  const file=selfie?.files?.[0];
-  if(!file){
+  const selfieFile=selfie?.files?.[0];
+  const proofFile=residenceProof?.files?.[0];
+  if(!selfieFile){
     msg.textContent='Envie uma selfie para concluir o cadastro.';
     return;
   }
-  if(file.size>MAX_SELFIE){
+  if(!proofFile){
+    msg.textContent='Envie a foto do comprovante de residência para concluir o cadastro.';
+    return;
+  }
+  if(selfieFile.size>MAX_IMAGE){
     msg.textContent='A selfie deve ter no máximo 5 MB.';
+    return;
+  }
+  if(proofFile.size>MAX_IMAGE){
+    msg.textContent='O comprovante de residência deve ter no máximo 5 MB.';
     return;
   }
   btn.disabled=true;
