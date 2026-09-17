@@ -15,7 +15,7 @@ from app.v14_public import router as public_router
 from app.v15_lender import router as lender_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.8.3'
+app.version = '12.8.4'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
@@ -33,14 +33,25 @@ def collector_app_slash():
     return FileResponse('app/static/collector.html')
 
 
+def _public_register_response():
+    return FileResponse(
+        'app/static/public-register.html',
+        headers={
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        },
+    )
+
+
 @app.get('/cadastro')
 def public_register():
-    return FileResponse('app/static/public-register.html')
+    return _public_register_response()
 
 
 @app.get('/cadastro/')
 def public_register_slash():
-    return FileResponse('app/static/public-register.html')
+    return _public_register_response()
 
 
 @app.get('/emprestador')
