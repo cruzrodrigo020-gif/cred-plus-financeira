@@ -114,7 +114,6 @@ async def public_client_create(
     state: str = Form(''),
     address: str = Form(''),
     address_reference: str = Form(''),
-    house_location: str = Form(...),
     notes: str = Form(''),
     consent: str = Form(...),
     selfie: UploadFile = File(...),
@@ -126,7 +125,6 @@ async def public_client_create(
     rg_value = rg.strip()
     whatsapp_value = whatsapp.strip()
     email_value = email.strip().lower()
-    house_location_value = house_location.strip()
 
     if len(name) < 3:
         raise HTTPException(400, 'Informe o nome completo.')
@@ -138,8 +136,6 @@ async def public_client_create(
         raise HTTPException(400, 'Informe um WhatsApp válido com DDD.')
     if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
         raise HTTPException(400, 'Informe um e-mail válido.')
-    if len(house_location_value) < 5:
-        raise HTTPException(400, 'Informe a localização da casa.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
         raise HTTPException(400, 'É necessário autorizar o envio dos dados.')
 
@@ -168,10 +164,7 @@ async def public_client_create(
     if len(proof_data) > MAX_IMAGE_SIZE:
         raise HTTPException(400, 'O comprovante de residência deve ter no máximo 5 MB.')
 
-    client_notes = (
-        f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}. '
-        f'Localização da casa: {house_location_value}.'
-    )
+    client_notes = f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}.'
     if notes.strip():
         client_notes += ' ' + notes.strip()
 
