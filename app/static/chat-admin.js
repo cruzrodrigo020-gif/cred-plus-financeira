@@ -80,11 +80,26 @@ async function loadAdminChatMessages(forceBottom=false){
   const x=await api(`/api/chat/messages/${ADMIN_CHAT_PEER}`);
   const host=$('adminChatConversation');
   if(!host)return;
+
   const oldMessages=host.querySelector('.cpchat-messages');
   const nearBottom=!oldMessages||oldMessages.scrollHeight-oldMessages.scrollTop-oldMessages.clientHeight<90;
+  const messagesHtml=(x.messages||[]).map(m=>adminChatBubble(m)).join('')||'<div class="cpchat-empty">Nenhuma mensagem ainda.<br>Envie a primeira mensagem.</div>';
+  const samePeer=String(host.dataset.peerId||'')===String(ADMIN_CHAT_PEER)&&!!host.querySelector('#adminChatInput');
+
+  if(samePeer){
+    const msgBox=$('adminChatMessages');
+    if(msgBox){
+      msgBox.innerHTML=messagesHtml;
+      if(forceBottom||nearBottom)msgBox.scrollTop=msgBox.scrollHeight;
+    }
+    refreshAdminChatBadge();
+    return;
+  }
+
   const initials=String(x.peer?.name||'?').trim().split(/\s+/).slice(0,2).map(v=>v[0]||'').join('').toUpperCase();
   host.className='cpchat-main';
-  host.innerHTML=`<div class="cpchat-head"><div class="cpchat-avatar">${esc(initials)}</div><div><div class="cpchat-title">${esc(x.peer?.name||'Cobrador')}</div><div class="cpchat-sub">Cobrador • chat interno CRED+</div></div></div><div id="adminChatMessages" class="cpchat-messages">${(x.messages||[]).map(m=>adminChatBubble(m)).join('')||'<div class="cpchat-empty">Nenhuma mensagem ainda.<br>Envie a primeira mensagem.</div>'}</div><form class="cpchat-compose" onsubmit="sendAdminChat(event)"><textarea id="adminChatInput" maxlength="2000" placeholder="Digite uma mensagem..." onkeydown="adminChatKey(event)"></textarea><button class="cpchat-send" type="submit">Enviar</button></form>`;
+  host.dataset.peerId=String(ADMIN_CHAT_PEER);
+  host.innerHTML=`<div class="cpchat-head"><div class="cpchat-avatar">${esc(initials)}</div><div><div class="cpchat-title">${esc(x.peer?.name||'Cobrador')}</div><div class="cpchat-sub">Cobrador • chat interno CRED+</div></div></div><div id="adminChatMessages" class="cpchat-messages">${messagesHtml}</div><form class="cpchat-compose" onsubmit="sendAdminChat(event)"><textarea id="adminChatInput" maxlength="2000" placeholder="Digite uma mensagem..." onkeydown="adminChatKey(event)"></textarea><button class="cpchat-send" type="submit">Enviar</button></form>`;
   const msgBox=$('adminChatMessages');
   if(msgBox&&(forceBottom||nearBottom))msgBox.scrollTop=msgBox.scrollHeight;
   refreshAdminChatBadge();
@@ -114,6 +129,7 @@ async function sendAdminChat(e){
     if(input)input.value='';
     await loadAdminChatMessages(true);
     await refreshAdminChatContacts();
+    $('adminChatInput')?.focus();
   }catch(err){toast(err.message)}
 }
 
