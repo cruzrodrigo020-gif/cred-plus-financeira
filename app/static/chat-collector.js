@@ -60,11 +60,26 @@ async function loadCollectorChatMessages(forceBottom=false){
   const x=await api(`/api/chat/messages/${COLLECTOR_CHAT_PEER}`);
   const host=$('collectorChatConversation');
   if(!host)return;
+
   const oldMessages=host.querySelector('.cpchat-messages');
   const nearBottom=!oldMessages||oldMessages.scrollHeight-oldMessages.scrollTop-oldMessages.clientHeight<90;
+  const messagesHtml=(x.messages||[]).map(m=>collectorChatBubble(m)).join('')||'<div class="cpchat-empty">Nenhuma mensagem ainda.<br>Envie a primeira mensagem.</div>';
+  const samePeer=String(host.dataset.peerId||'')===String(COLLECTOR_CHAT_PEER)&&!!host.querySelector('#collectorChatInput');
+
+  if(samePeer){
+    const msgBox=$('collectorChatMessages');
+    if(msgBox){
+      msgBox.innerHTML=messagesHtml;
+      if(forceBottom||nearBottom)msgBox.scrollTop=msgBox.scrollHeight;
+    }
+    collectorChatUnread();
+    return;
+  }
+
   const initials=String(x.peer?.name||'ADM').trim().split(/\s+/).slice(0,2).map(v=>v[0]||'').join('').toUpperCase();
   const select=COLLECTOR_CHAT_CONTACTS.length>1?`<select onchange="selectCollectorChat(this.value)" style="margin-left:auto;background:#091522;color:white;border:1px solid #213550;border-radius:10px;padding:8px">${COLLECTOR_CHAT_CONTACTS.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(COLLECTOR_CHAT_PEER)?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:'';
-  host.innerHTML=`<div class="cpchat-head"><div class="cpchat-avatar">${esc(initials)}</div><div><div class="cpchat-title">${esc(x.peer?.name||'Administração')}</div><div class="cpchat-sub">Administração • chat interno CRED+</div></div>${select}</div><div id="collectorChatMessages" class="cpchat-messages">${(x.messages||[]).map(m=>collectorChatBubble(m)).join('')||'<div class="cpchat-empty">Nenhuma mensagem ainda.<br>Envie a primeira mensagem.</div>'}</div><form class="cpchat-compose" onsubmit="sendCollectorChat(event)"><textarea id="collectorChatInput" maxlength="2000" placeholder="Digite uma mensagem..." onkeydown="collectorChatKey(event)"></textarea><button class="cpchat-send" type="submit">Enviar</button></form>`;
+  host.dataset.peerId=String(COLLECTOR_CHAT_PEER);
+  host.innerHTML=`<div class="cpchat-head"><div class="cpchat-avatar">${esc(initials)}</div><div><div class="cpchat-title">${esc(x.peer?.name||'Administração')}</div><div class="cpchat-sub">Administração • chat interno CRED+</div></div>${select}</div><div id="collectorChatMessages" class="cpchat-messages">${messagesHtml}</div><form class="cpchat-compose" onsubmit="sendCollectorChat(event)"><textarea id="collectorChatInput" maxlength="2000" placeholder="Digite uma mensagem..." onkeydown="collectorChatKey(event)"></textarea><button class="cpchat-send" type="submit">Enviar</button></form>`;
   const msgBox=$('collectorChatMessages');
   if(msgBox&&(forceBottom||nearBottom))msgBox.scrollTop=msgBox.scrollHeight;
   collectorChatUnread();
@@ -98,6 +113,7 @@ async function sendCollectorChat(e){
     await api('/api/chat/messages',{method:'POST',body:f});
     if(input)input.value='';
     await loadCollectorChatMessages(true);
+    $('collectorChatInput')?.focus();
   }catch(e){toast(e.message)}
 }
 
