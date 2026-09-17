@@ -118,3 +118,9 @@ async function sendAdminChat(e){
 }
 
 setInterval(refreshAdminChatBadge,8000);
+setTimeout(()=>{
+  if(U){
+    renderNav();
+    refreshAdminChatBadge();
+  }
+},100);
