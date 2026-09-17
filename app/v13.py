@@ -13,14 +13,16 @@ from app.v13_whatsapp import router as whatsapp_router
 from app.v13_delete import router as delete_router
 from app.v14_public import router as public_router
 from app.v15_lender import router as lender_router
+from app.v16_chat import router as chat_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.8.4'
+app.version = '12.9.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
 app.include_router(public_router)
 app.include_router(lender_router)
+app.include_router(chat_router)
 
 
 @app.get('/cobrador')
