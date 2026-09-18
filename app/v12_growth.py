@@ -151,6 +151,7 @@ def client_pending_snapshot(s: Session, collector_id: int, client_id: int, ref_d
     items = s.query(Installment).join(Contract).filter(
         Contract.collector_id == collector_id,
         Contract.client_id == client_id,
+        Contract.status == 'active',
         Installment.status != 'paid',
     ).all()
     overdue_items = [i for i in items if i.due_date < ref_date]
@@ -219,6 +220,7 @@ def generate_route(
 
     due = s.query(Installment).join(Contract).filter(
         Contract.collector_id == collector.id,
+        Contract.status == 'active',
         Installment.status != 'paid',
         Installment.due_date <= d,
     ).all()
@@ -305,7 +307,9 @@ def route_update(
 def delinquency(authorization: Optional[str] = Header(None), s: Session = Depends(db)):
     user = current_user(authorization, s)
     today_ = date.today()
-    iq = s.query(Installment).join(Contract).filter(Installment.status != 'paid')
+    iq = s.query(Installment).join(Contract).filter(
+        Contract.status == 'active', Installment.status != 'paid'
+    )
     if user.role != 'admin':
         iq = iq.filter(Contract.collector_id == user.id)
     pending_items = iq.all()
@@ -355,6 +359,7 @@ def delinquency(authorization: Optional[str] = Header(None), s: Session = Depend
         for collector in s.query(User).filter_by(role='collector').order_by(User.name).all():
             items = s.query(Installment).join(Contract).filter(
                 Contract.collector_id == collector.id,
+                Contract.status == 'active',
                 Installment.status != 'paid',
                 Installment.due_date < today_,
             ).all()
