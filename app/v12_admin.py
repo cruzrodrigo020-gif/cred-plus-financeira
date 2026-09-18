@@ -21,7 +21,10 @@ def _collector_metrics(s: Session, collector: User):
 
     clients = s.query(Client).filter_by(collector_id=collector.id).all()
     contracts = s.query(Contract).filter_by(collector_id=collector.id, status='active').all()
-    installments = s.query(Installment).join(Contract).filter(Contract.collector_id == collector.id).all()
+    installments = s.query(Installment).join(Contract).filter(
+        Contract.collector_id == collector.id,
+        Contract.status == 'active',
+    ).all()
 
     pending = [i for i in installments if i.status != 'paid']
     today_items = [i for i in installments if i.due_date == today_]
@@ -147,7 +150,7 @@ def collector_detail(collector_id: int, authorization: Optional[str] = Header(No
     for c in s.query(Client).filter_by(collector_id=collector.id).order_by(Client.name).all():
         contracts = s.query(Contract).filter_by(client_id=c.id).all()
         installments = s.query(Installment).join(Contract).filter(
-            Contract.client_id == c.id, Installment.status != 'paid'
+            Contract.client_id == c.id, Contract.status == 'active', Installment.status != 'paid'
         ).order_by(Installment.due_date).all()
         overdue_items = [i for i in installments if i.due_date < today_]
         next_due = installments[0].due_date if installments else None
@@ -168,6 +171,7 @@ def collector_detail(collector_id: int, authorization: Optional[str] = Header(No
     today_rows = []
     for i in s.query(Installment).join(Contract).filter(
         Contract.collector_id == collector.id,
+        Contract.status == 'active',
         Installment.due_date == today_,
     ).order_by(Installment.number).all():
         contract = s.get(Contract, i.contract_id)
@@ -188,6 +192,7 @@ def collector_detail(collector_id: int, authorization: Optional[str] = Header(No
     overdue_rows = []
     for i in s.query(Installment).join(Contract).filter(
         Contract.collector_id == collector.id,
+        Contract.status == 'active',
         Installment.status != 'paid',
         Installment.due_date < today_,
     ).order_by(Installment.due_date).limit(100).all():
