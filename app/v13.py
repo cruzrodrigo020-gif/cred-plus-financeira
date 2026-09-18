@@ -14,22 +14,24 @@ from app.v13_delete import router as delete_router
 from app.v14_public import router as public_router
 from app.v15_lender import router as lender_router
 from app.v16_chat import router as chat_router
+from app.v17_payment import router as payment_actions_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.9.1'
+app.version = '12.10.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
 app.include_router(public_router)
 app.include_router(lender_router)
 app.include_router(chat_router)
+app.include_router(payment_actions_router)
 
 
 @app.middleware('http')
 async def no_cache_app_pages(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css':
+    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js':
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
