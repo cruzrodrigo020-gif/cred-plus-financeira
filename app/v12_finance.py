@@ -87,7 +87,7 @@ def create_contract(
 @router.get('/api/installments')
 def installments(authorization: Optional[str] = Header(None), s: Session = Depends(db)):
     u = current_user(authorization, s)
-    q = s.query(Installment).join(Contract)
+    q = s.query(Installment).join(Contract).filter(Contract.status == 'active')
     if u.role == 'collector':
         q = q.filter(Contract.collector_id == u.id)
     out = []
