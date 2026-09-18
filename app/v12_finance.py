@@ -111,6 +111,8 @@ def mark_paid(
     if not i:
         raise HTTPException(404, 'Parcela não encontrada')
     c = s.get(Contract, i.contract_id)
+    if not c or c.status != 'active':
+        raise HTTPException(400, 'Este contrato nao esta ativo')
     if u.role == 'collector' and c.collector_id != u.id:
         raise HTTPException(403, 'Parcela fora da sua carteira')
     if i.status == 'paid' and i.paid_amount >= i.amount - 0.005:
@@ -135,6 +137,8 @@ def mark_unpaid(installment_id: int, authorization: Optional[str] = Header(None)
     if not i:
         raise HTTPException(404, 'Parcela não encontrada')
     c = s.get(Contract, i.contract_id)
+    if not c or c.status != 'active':
+        raise HTTPException(400, 'Este contrato nao esta ativo')
     if u.role == 'collector' and c.collector_id != u.id:
         raise HTTPException(403, 'Parcela fora da sua carteira')
     amount = i.paid_amount
