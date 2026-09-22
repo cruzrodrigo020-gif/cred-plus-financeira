@@ -92,6 +92,80 @@ def normalize_whatsapp(value: str) -> str:
     return phone
 
 
+def calculate_credit_score(
+    income: float,
+    time_at_work_months: int,
+    profession: str,
+    company: str,
+    cep: str,
+    street: str,
+    address_number: str,
+    neighborhood: str,
+    city: str,
+    state: str,
+    address_reference: str,
+    reference1_name: str,
+    reference1_phone: str,
+    reference2_name: str,
+    reference2_phone: str,
+):
+    # Score cadastral v1: somente critérios objetivos e não sensíveis.
+    score = 15  # identificação, contatos e documentos obrigatórios enviados
+
+    # Endereço: até 10 pontos.
+    address_checks = [
+        bool(cep.strip()),
+        bool(street.strip() and address_number.strip()),
+        bool(neighborhood.strip()),
+        bool(city.strip() and state.strip()),
+        bool(address_reference.strip()),
+    ]
+    score += sum(2 for ok in address_checks if ok)
+
+    # Informações profissionais: até 10 pontos.
+    if profession.strip():
+        score += 5
+    if company.strip():
+        score += 5
+
+    # Renda declarada: até 25 pontos.
+    income = max(0, float(income or 0))
+    if income >= 2500:
+        score += 25
+    elif income >= 1500:
+        score += 18
+    elif income >= 1000:
+        score += 10
+    elif income > 0:
+        score += 5
+
+    # Estabilidade no trabalho: até 25 pontos.
+    months = max(0, int(time_at_work_months or 0))
+    if months >= 12:
+        score += 25
+    elif months >= 6:
+        score += 18
+    elif months >= 3:
+        score += 10
+    elif months > 0:
+        score += 5
+
+    # Referências pessoais: até 15 pontos.
+    ref1 = bool(reference1_name.strip() and digits(reference1_phone))
+    ref2 = bool(reference2_name.strip() and digits(reference2_phone))
+    if ref1:
+        score += 8
+    if ref2:
+        score += 7
+
+    score = min(100, max(0, int(score)))
+    if score <= 49:
+        return score, 'baixo', 100.0
+    if score <= 74:
+        return score, 'medio', 150.0
+    return score, 'alto', 350.0
+
+
 @router.post('/api/public/clients')
 async def public_client_create(
     background_tasks: BackgroundTasks,
@@ -106,6 +180,12 @@ async def public_client_create(
     marital_status: str = Form(''),
     profession: str = Form(''),
     company: str = Form(''),
+    income: float = Form(0),
+    time_at_work_months: int = Form(0),
+    reference1_name: str = Form(''),
+    reference1_phone: str = Form(''),
+    reference2_name: str = Form(''),
+    reference2_phone: str = Form(''),
     cep: str = Form(''),
     street: str = Form(''),
     address_number: str = Form(''),
@@ -136,6 +216,10 @@ async def public_client_create(
         raise HTTPException(400, 'Informe um WhatsApp válido com DDD.')
     if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
         raise HTTPException(400, 'Informe um e-mail válido.')
+    if income < 0:
+        raise HTTPException(400, 'A renda não pode ser negativa.')
+    if time_at_work_months < 0:
+        raise HTTPException(400, 'O tempo de trabalho não pode ser negativo.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
         raise HTTPException(400, 'É necessário autorizar o envio dos dados.')
 
@@ -164,7 +248,29 @@ async def public_client_create(
     if len(proof_data) > MAX_IMAGE_SIZE:
         raise HTTPException(400, 'O comprovante de residência deve ter no máximo 5 MB.')
 
-    client_notes = f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}.'
+    score_points, score_band, suggested_limit = calculate_credit_score(
+        income=income,
+        time_at_work_months=time_at_work_months,
+        profession=profession,
+        company=company,
+        cep=cep,
+        street=street,
+        address_number=address_number,
+        neighborhood=neighborhood,
+        city=city,
+        state=state,
+        address_reference=address_reference,
+        reference1_name=reference1_name,
+        reference1_phone=reference1_phone,
+        reference2_name=reference2_name,
+        reference2_phone=reference2_phone,
+    )
+
+    client_notes = (
+        f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}. '
+        f'Pré-score cadastral v1: {score_points}/100, faixa {score_band}, '
+        f'limite indicativo R$ {suggested_limit:.2f}. Aprovação final manual.'
+    )
     if notes.strip():
         client_notes += ' ' + notes.strip()
 
@@ -179,8 +285,11 @@ async def public_client_create(
         marital_status=marital_status.strip(),
         profession=profession.strip(),
         company=company.strip(),
-        time_at_work='',
-        income=0,
+        time_at_work=f'{time_at_work_months} meses',
+        income=income,
+        credit_score=score_points,
+        score_band=score_band,
+        suggested_limit=suggested_limit,
         address=address.strip(),
         cep=cep.strip(),
         street=street.strip(),
@@ -189,10 +298,10 @@ async def public_client_create(
         city=city.strip(),
         state=state.strip(),
         address_reference=address_reference.strip(),
-        reference1_name='',
-        reference1_phone='',
-        reference2_name='',
-        reference2_phone='',
+        reference1_name=reference1_name.strip(),
+        reference1_phone=reference1_phone.strip(),
+        reference2_name=reference2_name.strip(),
+        reference2_phone=reference2_phone.strip(),
         notes=client_notes,
         collector_id=None,
     )
@@ -231,6 +340,12 @@ async def public_client_create(
         'id': client.id,
         'message': 'Cadastro enviado com sucesso.',
         'company_whatsapp': company_whatsapp(),
+        'pre_analysis': {
+            'score': score_points,
+            'band': score_band,
+            'suggested_limit': suggested_limit,
+            'final_approval_required': True,
+        },
         'confirmations': {
             'email_configured': email_confirmation_configured(),
         },
