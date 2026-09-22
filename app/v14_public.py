@@ -181,6 +181,7 @@ async def public_client_create(
     profession: str = Form(''),
     company: str = Form(''),
     income: float = Form(0),
+    income_payment_date: str = Form(...),
     time_at_work_months: int = Form(0),
     reference1_name: str = Form(''),
     reference1_phone: str = Form(''),
@@ -217,11 +218,13 @@ async def public_client_create(
     if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
         raise HTTPException(400, 'Informe um e-mail válido.')
     if income < 600:
-        raise HTTPException(400, 'Para realizar o cadastro, a renda mensal mínima deve ser de R$ 600,00.')
+        raise HTTPException(400, 'O cadastro não atende aos critérios internos para análise de crédito.')
     if time_at_work_months < 0:
         raise HTTPException(400, 'O tempo de trabalho não pode ser negativo.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
         raise HTTPException(400, 'É necessário autorizar o envio dos dados.')
+
+    income_payment_date_value = parse_date(income_payment_date, 'data do pagamento')
 
     cpf_value = digits(cpf)
     if len(cpf_value) != 11:
@@ -269,7 +272,8 @@ async def public_client_create(
     client_notes = (
         f'Cadastro realizado pelo link público. Cobrador informado: {collector_name}. '
         f'Pré-score cadastral v1: {score_points}/100, faixa {score_band}, '
-        f'limite indicativo R$ {suggested_limit:.2f}. Aprovação final manual.'
+        f'limite indicativo R$ {suggested_limit:.2f}. Critério interno de renda atendido. '
+        f'Data de recebimento informada: {income_payment_date_value.strftime("%d/%m/%Y")}. Aprovação final manual.'
     )
     if notes.strip():
         client_notes += ' ' + notes.strip()
@@ -290,6 +294,7 @@ async def public_client_create(
         credit_score=score_points,
         score_band=score_band,
         suggested_limit=suggested_limit,
+        income_payment_date=income_payment_date_value,
         address=address.strip(),
         cep=cep.strip(),
         street=street.strip(),
