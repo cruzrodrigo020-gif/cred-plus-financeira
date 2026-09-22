@@ -64,6 +64,7 @@ class Client(Base):
     credit_score: Mapped[int] = mapped_column(Integer, default=0)
     score_band: Mapped[str] = mapped_column(String(20), default='')
     suggested_limit: Mapped[float] = mapped_column(Float, default=0)
+    income_payment_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     address: Mapped[str] = mapped_column(String(255), default='')
     cep: Mapped[str] = mapped_column(String(20), default='')
     street: Mapped[str] = mapped_column(String(180), default='')
@@ -191,6 +192,7 @@ CLIENT_MIGRATIONS = {
     'credit_score': 'INTEGER DEFAULT 0',
     'score_band': "VARCHAR(20) DEFAULT ''",
     'suggested_limit': 'FLOAT DEFAULT 0',
+    'income_payment_date': 'DATE',
     'cep': "VARCHAR(20) DEFAULT ''",
     'street': "VARCHAR(180) DEFAULT ''",
     'address_number': "VARCHAR(30) DEFAULT ''",
