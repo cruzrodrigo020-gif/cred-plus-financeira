@@ -46,7 +46,11 @@ form.addEventListener('submit',async e=>{
     const data=new FormData(form);
     const r=await fetch('/api/public/clients',{method:'POST',body:data});
     const x=await r.json().catch(()=>({detail:'Não foi possível concluir o cadastro.'}));
-    if(!r.ok) throw new Error(x.detail||'Não foi possível concluir o cadastro.');
+    if(!r.ok){
+      let detail=x.detail||'Não foi possível concluir o cadastro.';
+      if(Array.isArray(detail)) detail=detail.map(v=>v.msg||'Campo inválido').join(' • ');
+      throw new Error(detail);
+    }
     form.classList.add('hidden');
     const pre=x.pre_analysis||{};
     const bandLabel={baixo:'BAIXO',medio:'MÉDIO',alto:'ALTO'}[pre.band]||'EM ANÁLISE';
