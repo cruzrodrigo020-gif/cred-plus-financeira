@@ -37,6 +37,8 @@ def seed():
                 Product(name='Final • 20 dias', rate=30, days=20, periodicity='final'),
                 Product(name='Final • 30 dias', rate=35, days=30, periodicity='final'),
             ])
+        if not s.query(Product).filter_by(periodicity='monthly').first():
+            s.add(Product(name='Acordo • até 10 parcelas mensais', rate=0, days=30, periodicity='monthly'))
         s.commit()
     finally:
         s.close()
