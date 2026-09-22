@@ -48,6 +48,14 @@ form.addEventListener('submit',async e=>{
     const x=await r.json().catch(()=>({detail:'Não foi possível concluir o cadastro.'}));
     if(!r.ok) throw new Error(x.detail||'Não foi possível concluir o cadastro.');
     form.classList.add('hidden');
+    const pre=x.pre_analysis||{};
+    const bandLabel={baixo:'BAIXO',medio:'MÉDIO',alto:'ALTO'}[pre.band]||'EM ANÁLISE';
+    const result=document.getElementById('scoreResult');
+    if(result){
+      const limit=Number(pre.suggested_limit||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      result.className='score-result '+(pre.band||'');
+      result.innerHTML=`<span>Pré-score cadastral</span><strong>${bandLabel}</strong><b>${Number(pre.score||0)}/100 pontos</b><em>Limite indicativo: ${limit}</em>`;
+    }
     document.getElementById('success').classList.remove('hidden');
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(err){
