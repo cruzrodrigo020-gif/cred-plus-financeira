@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cadastro de Cliente • CRED+ Financeira</title>
-<link rel="stylesheet" href="/static/public-register.css">
+<link rel="stylesheet" href="/static/public-register.css?v=2">
 </head>
 <body>
 <main class="wrap">
@@ -15,6 +15,17 @@
       <h1>Cadastro de cliente</h1>
       <p>Preencha seus dados. Sua ficha será enviada diretamente para o sistema interno da financeira.</p>
     </div>
+  </section>
+
+  <section class="score-guide">
+    <div class="section-title">Pré-análise de crédito</div>
+    <p>O cadastro recebe uma pontuação de 0 a 100 com base em dados objetivos informados e documentos enviados.</p>
+    <div class="score-grid">
+      <div class="score-card low"><b>Score baixo</b><span>0 a 49 pontos</span><strong>até R$ 100</strong></div>
+      <div class="score-card medium"><b>Score médio</b><span>50 a 74 pontos</span><strong>até R$ 150</strong></div>
+      <div class="score-card high"><b>Score alto</b><span>75 a 100 pontos</span><strong>até R$ 350</strong></div>
+    </div>
+    <small>O score é uma pré-análise indicativa. A liberação de crédito depende de conferência e aprovação final da CRED+ Financeira.</small>
   </section>
 
   <form id="registerForm" class="form-card" enctype="multipart/form-data">
@@ -29,6 +40,8 @@
       <label><span>E-mail *</span><input name="email" type="email" required autocomplete="email" placeholder="voce@email.com"></label>
       <label><span>Profissão</span><input name="profession"></label>
       <label><span>Empresa / trabalho</span><input name="company"></label>
+      <label><span>Renda mensal declarada *</span><input name="income" type="number" min="0" step="0.01" required placeholder="Ex.: 1800"></label>
+      <label><span>Tempo no trabalho atual (meses) *</span><input name="time_at_work_months" type="number" min="0" step="1" required placeholder="Ex.: 12"></label>
       <label class="wide selfie-field"><span>Selfie *</span><input id="selfie" name="selfie" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="user" required><small>Envie uma foto atual do rosto. Tamanho máximo: 5 MB.</small></label>
     </div>
 
@@ -44,6 +57,14 @@
       <label class="wide selfie-field"><span>Foto do comprovante de residência *</span><input id="residenceProof" name="residence_proof" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" required><small>Fotografe o comprovante com os dados legíveis. Tamanho máximo: 5 MB.</small></label>
     </div>
 
+    <div class="section-title">Referências pessoais</div>
+    <div class="grid">
+      <label><span>Referência 1 • nome</span><input name="reference1_name"></label>
+      <label><span>Referência 1 • telefone</span><input name="reference1_phone" inputmode="tel"></label>
+      <label><span>Referência 2 • nome</span><input name="reference2_name"></label>
+      <label><span>Referência 2 • telefone</span><input name="reference2_phone" inputmode="tel"></label>
+    </div>
+
     <div class="section-title">Observações</div>
     <label><textarea name="notes" rows="4" placeholder="Se quiser, deixe uma observação para nossa equipe."></textarea></label>
 
@@ -57,11 +78,13 @@
     <div class="success-icon">✓</div>
     <h2>Cadastro enviado com sucesso</h2>
     <p>Sua ficha, selfie e comprovante de residência já foram registrados no sistema da CRED+ Financeira.</p>
+    <div id="scoreResult" class="score-result"></div>
+    <p class="score-disclaimer">O resultado é uma pré-análise e não representa aprovação automática do empréstimo.</p>
     <p style="margin-top:12px">WhatsApp oficial: <a href="https://wa.me/5591980459857" target="_blank" rel="noopener" style="color:#71c0ff;font-weight:800;text-decoration:none">(91) 98045-9857</a></p>
   </section>
 
   <footer>CRED+ Financeira • WhatsApp (91) 98045-9857 • Cadastro online</footer>
 </main>
-<script src="/static/public-register.js"></script>
+<script src="/static/public-register.js?v=2"></script>
 </body>
 </html>
