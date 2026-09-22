@@ -87,7 +87,8 @@ def create_contract(
     for idx in range(n):
         value = base if idx < n - 1 else round(total - running, 2)
         values.append(value); running = round(running + value, 2)
-    number = 'CTR-' + datetime.now().strftime('%y%m%d%H%M%S%f')[-12:]
+    prefix = 'ACD-' if p.periodicity == 'monthly' else 'CTR-'
+    number = prefix + datetime.now().strftime('%y%m%d%H%M%S%f')[-12:]
     x = Contract(number=number, client_id=c.id, principal=principal, total=total, installments=n,
                  installment_value=round(total / n, 2), first_due=due, rate=rate,
                  periodicity=p.periodicity, product_id=p.id, collector_id=c.collector_id, status='active')
