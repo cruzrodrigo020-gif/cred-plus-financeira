@@ -216,8 +216,8 @@ async def public_client_create(
         raise HTTPException(400, 'Informe um WhatsApp válido com DDD.')
     if '@' not in email_value or '.' not in email_value.rsplit('@', 1)[-1]:
         raise HTTPException(400, 'Informe um e-mail válido.')
-    if income < 0:
-        raise HTTPException(400, 'A renda não pode ser negativa.')
+    if income < 600:
+        raise HTTPException(400, 'Para realizar o cadastro, a renda mensal mínima deve ser de R$ 600,00.')
     if time_at_work_months < 0:
         raise HTTPException(400, 'O tempo de trabalho não pode ser negativo.')
     if consent.lower() not in ('1', 'true', 'on', 'sim'):
