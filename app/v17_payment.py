@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import calendar
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Form, Header
@@ -9,6 +10,14 @@ from app.v12_models import Base, engine, Product, Client, Contract, Installment,
 from app.v12_helpers import db, parse_date, current_user, require_admin, log
 
 router = APIRouter()
+
+
+def _add_months(value: date, months: int) -> date:
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
 
 
 class ContractRenewal(Base):
@@ -139,7 +148,10 @@ def renewal_preview(contract_id: int, authorization: Optional[str] = Header(None
         raise HTTPException(400, 'Este contrato j? recebeu valor acima dos juros. A renova??o por juros n?o se aplica.')
     remaining_interest = _money(max(0, interest_due - received))
     p = s.get(Product, c.product_id)
-    recommended = date.today() + timedelta(days=(p.days if c.periodicity == 'final' and p else 1))
+    if c.periodicity == 'monthly':
+        recommended = _add_months(date.today(), 1)
+    else:
+        recommended = date.today() + timedelta(days=(p.days if c.periodicity == 'final' and p else 1))
     return {
         'contract_id': c.id, 'contract': c.number, 'principal': _money(c.principal), 'rate': _money(c.rate),
         'interest_due': interest_due, 'already_received': received,
@@ -209,7 +221,12 @@ def renew_interest(
     s.add(new_contract)
     s.flush()
     for idx, value in enumerate(values, 1):
-        item_due = due if c.periodicity == 'final' else due + timedelta(days=idx - 1)
+        if c.periodicity == 'final':
+            item_due = due
+        elif c.periodicity == 'monthly':
+            item_due = _add_months(due, idx - 1)
+        else:
+            item_due = due + timedelta(days=idx - 1)
         s.add(Installment(contract_id=new_contract.id, number=idx, due_date=item_due,
                           amount=value, status='pending', paid_amount=0))
 
