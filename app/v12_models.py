@@ -61,6 +61,9 @@ class Client(Base):
     company: Mapped[str] = mapped_column(String(160), default='')
     time_at_work: Mapped[str] = mapped_column(String(80), default='')
     income: Mapped[float] = mapped_column(Float, default=0)
+    credit_score: Mapped[int] = mapped_column(Integer, default=0)
+    score_band: Mapped[str] = mapped_column(String(20), default='')
+    suggested_limit: Mapped[float] = mapped_column(Float, default=0)
     address: Mapped[str] = mapped_column(String(255), default='')
     cep: Mapped[str] = mapped_column(String(20), default='')
     street: Mapped[str] = mapped_column(String(180), default='')
@@ -185,6 +188,9 @@ CLIENT_MIGRATIONS = {
     'marital_status': "VARCHAR(60) DEFAULT ''",
     'company': "VARCHAR(160) DEFAULT ''",
     'time_at_work': "VARCHAR(80) DEFAULT ''",
+    'credit_score': 'INTEGER DEFAULT 0',
+    'score_band': "VARCHAR(20) DEFAULT ''",
+    'suggested_limit': 'FLOAT DEFAULT 0',
     'cep': "VARCHAR(20) DEFAULT ''",
     'street': "VARCHAR(180) DEFAULT ''",
     'address_number': "VARCHAR(30) DEFAULT ''",
