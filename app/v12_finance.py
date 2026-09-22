@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, date
+import calendar
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Form, Header
 from fastapi.responses import StreamingResponse
@@ -7,6 +8,15 @@ from app.v12_models import Product, Client, Contract, Installment, Payment, Cash
 from app.v12_helpers import db, parse_date, current_user, require_admin, log, visible_contracts_query, make_receipt_pdf
 
 router = APIRouter()
+
+
+def add_months(value: date, months: int) -> date:
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
 
 @router.get('/api/products')
 def products(authorization: Optional[str] = Header(None), s: Session = Depends(db)):
@@ -52,8 +62,8 @@ def contract_detail(contract_id: int, authorization: Optional[str] = Header(None
 @router.post('/api/contracts')
 def create_contract(
     client_id: int = Form(...), product_id: int = Form(...), principal: float = Form(...),
-    installments: int = Form(...), first_due: str = Form(...), authorization: Optional[str] = Header(None),
-    s: Session = Depends(db)
+    installments: int = Form(...), first_due: str = Form(...), custom_rate: Optional[float] = Form(None),
+    authorization: Optional[str] = Header(None), s: Session = Depends(db)
 ):
     u = current_user(authorization, s); require_admin(u)
     p = s.get(Product, product_id); c = s.get(Client, client_id)
@@ -61,9 +71,16 @@ def create_contract(
         raise HTTPException(404, 'Cliente/produto não encontrado')
     if principal <= 0 or installments <= 0:
         raise HTTPException(400, 'Valor e parcelas devem ser maiores que zero')
+    if p.periodicity == 'monthly' and installments > 10:
+        raise HTTPException(400, 'Acordos podem ter no máximo 10 parcelas mensais')
     due = parse_date(first_due, 'primeiro vencimento')
     n = 1 if p.periodicity == 'final' else installments
-    total = round(principal * (1 + p.rate / 100), 2)
+    rate = p.rate
+    if p.periodicity == 'monthly':
+        if custom_rate is None or custom_rate < 0:
+            raise HTTPException(400, 'Informe a taxa de juros do acordo')
+        rate = float(custom_rate)
+    total = round(principal * (1 + rate / 100), 2)
     values = []
     base = int((total / n) * 100) / 100
     running = 0.0
@@ -72,13 +89,19 @@ def create_contract(
         values.append(value); running = round(running + value, 2)
     number = 'CTR-' + datetime.now().strftime('%y%m%d%H%M%S%f')[-12:]
     x = Contract(number=number, client_id=c.id, principal=principal, total=total, installments=n,
-                 installment_value=round(total / n, 2), first_due=due, rate=p.rate,
+                 installment_value=round(total / n, 2), first_due=due, rate=rate,
                  periodicity=p.periodicity, product_id=p.id, collector_id=c.collector_id, status='active')
     s.add(x); s.flush()
     for idx, value in enumerate(values, 1):
-        item_due = due if p.periodicity == 'final' else due + timedelta(days=idx - 1)
+        if p.periodicity == 'final':
+            item_due = due
+        elif p.periodicity == 'monthly':
+            item_due = add_months(due, idx - 1)
+        else:
+            item_due = due + timedelta(days=idx - 1)
         s.add(Installment(contract_id=x.id, number=idx, due_date=item_due, amount=value, status='pending', paid_amount=0))
-    s.add(Cash(kind='out', category='Crédito liberado', amount=principal, movement_date=date.today(),
+    cash_category = 'Acordo liberado' if p.periodicity == 'monthly' else 'Crédito liberado'
+    s.add(Cash(kind='out', category=cash_category, amount=principal, movement_date=date.today(),
                description=number, reference_id=number, user_id=u.id))
     s.commit(); log(s, u, 'CONTRACT_CREATE', number)
     return {'id': x.id, 'number': number}
