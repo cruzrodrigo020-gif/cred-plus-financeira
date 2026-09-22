@@ -73,6 +73,7 @@ def client_to_dict(x: Client, s: Optional[Session] = None):
         'company': x.company, 'time_at_work': x.time_at_work,
         'income': x.income, 'credit_score': x.credit_score or 0,
         'score_band': x.score_band or '', 'suggested_limit': x.suggested_limit or 0,
+        'income_payment_date': str(x.income_payment_date) if x.income_payment_date else '',
         'address': x.address, 'cep': x.cep,
         'street': x.street, 'address_number': x.address_number,
         'neighborhood': x.neighborhood, 'city': x.city, 'state': x.state,
