@@ -19,6 +19,7 @@ ALLOWED_IMAGE_TYPES = {
     'image/heif',
 }
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'}
 DEFAULT_COMPANY_WHATSAPP = '5591980459857'
 
 
@@ -90,6 +91,13 @@ def normalize_whatsapp(value: str) -> str:
     if len(phone) in (10, 11):
         phone = '55' + phone
     return phone
+
+
+def valid_image_upload(file: UploadFile) -> bool:
+    content_type = (file.content_type or '').lower().strip()
+    filename = (file.filename or '').lower().strip()
+    extension = os.path.splitext(filename)[1]
+    return content_type in ALLOWED_IMAGE_TYPES or extension in ALLOWED_IMAGE_EXTENSIONS
 
 
 def calculate_credit_score(
@@ -234,8 +242,8 @@ async def public_client_create(
             raise HTTPException(409, 'Já existe um cadastro com este CPF.')
 
     selfie_type = (selfie.content_type or '').lower()
-    if selfie_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(400, 'A selfie deve ser uma imagem JPG, PNG, WEBP ou HEIC.')
+    if not valid_image_upload(selfie):
+        raise HTTPException(400, 'A selfie precisa ser uma foto válida (JPG, PNG, WEBP, HEIC ou HEIF).')
     selfie_data = await selfie.read()
     if not selfie_data:
         raise HTTPException(400, 'Envie uma selfie.')
@@ -243,8 +251,8 @@ async def public_client_create(
         raise HTTPException(400, 'A selfie deve ter no máximo 5 MB.')
 
     proof_type = (residence_proof.content_type or '').lower()
-    if proof_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(400, 'O comprovante de residência deve ser uma foto JPG, PNG, WEBP ou HEIC.')
+    if not valid_image_upload(residence_proof):
+        raise HTTPException(400, 'O comprovante de residência precisa ser uma foto válida (JPG, PNG, WEBP, HEIC ou HEIF).')
     proof_data = await residence_proof.read()
     if not proof_data:
         raise HTTPException(400, 'Envie a foto do comprovante de residência.')
@@ -318,7 +326,7 @@ async def public_client_create(
             client_id=client.id,
             category='photo',
             filename=(selfie.filename or f'selfie-{client.id}.jpg')[:255],
-            content_type=selfie_type,
+            content_type=selfie_type if selfie_type.startswith('image/') else 'application/octet-stream',
             size=len(selfie_data),
             data=selfie_data,
         )
@@ -326,7 +334,7 @@ async def public_client_create(
             client_id=client.id,
             category='document',
             filename=('comprovante-residencia-' + (residence_proof.filename or f'{client.id}.jpg'))[:255],
-            content_type=proof_type,
+            content_type=proof_type if proof_type.startswith('image/') else 'application/octet-stream',
             size=len(proof_data),
             data=proof_data,
         )
