@@ -90,6 +90,29 @@ def dashboard(authorization: Optional[str] = Header(None), s: Session = Depends(
         cq = cq.filter(Client.collector_id == u.id)
     kq = visible_contracts_query(s, u).filter(Contract.status == 'active')
     overdue_count = sum(1 for i in installments if i.status != 'paid' and i.due_date < today_)
+    due_today = []
+    if u.role == 'admin':
+        for i in sorted(
+            [item for item in installments if item.status != 'paid' and item.due_date == today_],
+            key=lambda item: (item.contract_id, item.number)
+        ):
+            contract = s.get(Contract, i.contract_id)
+            client = s.get(Client, contract.client_id) if contract else None
+            remaining = max(0, float(i.amount or 0) - float(i.paid_amount or 0))
+            due_today.append({
+                'installment_id': i.id,
+                'contract_id': contract.id if contract else None,
+                'contract': contract.number if contract else '-',
+                'client_id': client.id if client else None,
+                'client': client.name if client else '-',
+                'whatsapp': client.whatsapp if client else '',
+                'installment_number': i.number,
+                'amount': i.amount,
+                'paid_amount': i.paid_amount,
+                'remaining': remaining,
+                'status': i.status,
+                'periodicity': contract.periodicity if contract else '',
+            })
     return {
         'cash': cash_in - cash_out,
         'receivable': receivable,
@@ -100,6 +123,9 @@ def dashboard(authorization: Optional[str] = Header(None), s: Session = Depends(
         'installments_total': len(installments),
         'installments_paid': sum(1 for i in installments if i.status == 'paid'),
         'installments_overdue': overdue_count,
+        'due_today_count': len(due_today),
+        'due_today_total': sum(item['remaining'] for item in due_today),
+        'due_today': due_today,
         'role': u.role,
     }
 
