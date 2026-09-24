@@ -14,7 +14,8 @@ from app.v13_delete import router as delete_router
 from app.v14_public import router as public_router
 from app.v15_lender import router as lender_router
 from app.v16_chat import router as chat_router
-from app.v17_payment import router as payment_actions_router\nfrom app.v18_reports import router as reports_router
+from app.v17_payment import router as payment_actions_router
+from app.v18_reports import router as reports_router
 
 app.title = 'CRED+ Financeira Premium'
 app.version = '12.14.0'
@@ -24,7 +25,8 @@ app.include_router(delete_router)
 app.include_router(public_router)
 app.include_router(lender_router)
 app.include_router(chat_router)
-app.include_router(payment_actions_router)\napp.include_router(reports_router)
+app.include_router(payment_actions_router)
+app.include_router(reports_router)
 
 
 @app.middleware('http')
