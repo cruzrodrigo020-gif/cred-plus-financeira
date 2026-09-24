@@ -18,7 +18,7 @@ from app.v17_payment import router as payment_actions_router
 from app.v18_reports import router as reports_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.14.0'
+app.version = '12.14.1'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
