@@ -16,7 +16,7 @@ async function render_dashboard(){
     const cs=await api('/api/collectors/summary');
     collectors=`<div class="card"><div class="toolbar"><h2>Desempenho dos cobradores</h2></div><div class="table-wrap"><table><tr><th>Cobrador</th><th>Clientes</th><th>Contratos</th><th>Recebido hoje</th><th>Em atraso</th></tr>${cs.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${c.clients}</td><td>${c.contracts}</td><td>${money(c.received_today)}</td><td>${money(c.overdue)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum cobrador cadastrado.</td></tr>'}</table></div></div>`;
     const todayItems=x.due_today||[];
-    dueToday=`<div class="card" style="border:1px solid rgba(255,183,77,.55);box-shadow:0 0 0 1px rgba(255,183,77,.08) inset">
+    dueToday=`<div class="card due-today-card" style="border:1px solid rgba(255,183,77,.55);box-shadow:0 0 0 1px rgba(255,183,77,.08) inset">
       <div class="toolbar">
         <div>
           <h2>⚠️ Vencimentos de hoje</h2>
