@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cadastro de Cliente • CRED+ Financeira</title>
+<link rel="stylesheet" href="/static/public-multi-client.css?v=1">
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <div class="logo">C+</div>
+    <div>
+      <div class="brand">CRED+ Financeira</div>
+      <div class="sub">Cadastro digital de cliente</div>
+    </div>
+  </section>
+  <section class="card">
+    <div id="accountBox" class="account-box">Carregando responsável pelo cadastro...</div>
+    <h1>Faça seu cadastro</h1>
+    <p class="intro">Preencha seus dados com atenção. As informações serão enviadas diretamente para a carteira responsável pela análise.</p>
+    <form id="clientPublicForm">
+      <div class="section-title">Dados pessoais</div>
+      <div class="grid">
+        <label class="wide"><span>Nome completo *</span><input name="name" required autocomplete="name"></label>
+        <label><span>CPF</span><input name="cpf" inputmode="numeric" placeholder="000.000.000-00"></label>
+        <label><span>WhatsApp *</span><input name="whatsapp" required inputmode="tel" placeholder="(91) 99999-9999"></label>
+        <label><span>Telefone</span><input name="phone" inputmode="tel"></label>
+        <label><span>E-mail</span><input name="email" type="email" autocomplete="email"></label>
+      </div>
+
+      <div class="section-title">Endereço</div>
+      <div class="grid">
+        <label class="wide"><span>Endereço completo *</span><input name="address" required placeholder="Rua, número, bairro e complemento"></label>
+        <label><span>Cidade *</span><input name="city" required></label>
+        <label><span>Estado *</span><input name="state" required maxlength="2" placeholder="PA"></label>
+      </div>
+
+      <div class="section-title">Informações adicionais</div>
+      <label><span>Observações</span><textarea name="notes" rows="4" placeholder="Se desejar, deixe alguma informação adicional."></textarea></label>
+
+      <label class="consent">
+        <input type="checkbox" name="consent" value="sim" required>
+        <span>Confirmo que os dados informados são verdadeiros e autorizo o envio deste cadastro para análise do responsável pela carteira.</span>
+      </label>
+
+      <button id="submitBtn" type="submit">Enviar meu cadastro</button>
+      <div id="msg" class="message"></div>
+    </form>
+    <div id="success" class="success hidden">
+      <div class="success-icon">✓</div>
+      <h2>Cadastro enviado com sucesso!</h2>
+      <p>Suas informações já foram encaminhadas para o responsável. Aguarde o contato para continuidade do atendimento.</p>
+    </div>
+  </section>
+  <footer>CRED+ Financeira • Cadastro digital seguro</footer>
+</main>
+<script src="/static/public-multi-client.js?v=1"></script>
+</body></html>
