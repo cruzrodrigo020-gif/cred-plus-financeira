@@ -18,7 +18,7 @@ from app.v17_payment import router as payment_actions_router
 from app.v18_reports import router as reports_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.14.1'
+app.version = '12.15.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
@@ -33,7 +33,7 @@ app.include_router(reports_router)
 async def no_cache_app_pages(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v18-reports.js':
+    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v18-reports.js' or path.startswith('/static/multi-'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -93,3 +93,23 @@ def lender_register():
 @app.get('/emprestador/cadastro/')
 def lender_register_slash():
     return FileResponse('app/static/lender-register.html')
+
+
+@app.get('/painel')
+def multi_admin_app():
+    return _no_cache_file('app/static/multi-admin.html')
+
+
+@app.get('/painel/')
+def multi_admin_app_slash():
+    return _no_cache_file('app/static/multi-admin.html')
+
+
+@app.get('/painel/cadastro')
+def multi_admin_register():
+    return _no_cache_file('app/static/multi-register.html')
+
+
+@app.get('/painel/cadastro/')
+def multi_admin_register_slash():
+    return _no_cache_file('app/static/multi-register.html')
