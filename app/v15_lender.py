@@ -3,7 +3,7 @@ from typing import Optional
 
 import jwt
 from fastapi import APIRouter, Depends, Form, Header, HTTPException
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.v12_models import Base, SECRET, engine, pwd
@@ -76,6 +76,32 @@ class LenderInstallment(Base):
     paid_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
 
+class LenderSubscription(Base):
+    __tablename__ = 'lender_subscriptions'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lender_id: Mapped[int] = mapped_column(ForeignKey('lender_accounts.id'), unique=True, index=True)
+    trial_started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    trial_ends_at: Mapped[datetime] = mapped_column(DateTime)
+    paid_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default='trial')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class LenderSubscriptionPayment(Base):
+    __tablename__ = 'lender_subscription_payments'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lender_id: Mapped[int] = mapped_column(ForeignKey('lender_accounts.id'), index=True)
+    amount: Mapped[float] = mapped_column(Float, default=24.99)
+    status: Mapped[str] = mapped_column(String(30), default='pending')
+    proof_filename: Mapped[str] = mapped_column(String(255), default='')
+    proof_content_type: Mapped[str] = mapped_column(String(120), default='')
+    proof_size: Mapped[int] = mapped_column(Integer, default=0)
+    proof_data: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reviewed_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+
 class LenderPayment(Base):
     __tablename__ = 'lender_payments'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -108,7 +134,7 @@ def make_lender_token(account: LenderAccount) -> str:
     )
 
 
-def current_lender(authorization: Optional[str], s: Session) -> LenderAccount:
+def current_lender_unrestricted(authorization: Optional[str], s: Session) -> LenderAccount:
     if not authorization or not authorization.startswith('Bearer '):
         raise HTTPException(401, 'Não autenticado')
     try:
@@ -120,6 +146,49 @@ def current_lender(authorization: Optional[str], s: Session) -> LenderAccount:
         raise HTTPException(401, 'Token inválido ou expirado')
     if not account or not account.active:
         raise HTTPException(401, 'Conta inativa')
+    return account
+
+
+def ensure_lender_subscription(s: Session, account: LenderAccount) -> LenderSubscription:
+    sub = s.query(LenderSubscription).filter_by(lender_id=account.id).first()
+    if not sub:
+        now = datetime.utcnow()
+        sub = LenderSubscription(
+            lender_id=account.id,
+            trial_started_at=now,
+            trial_ends_at=now + timedelta(days=7),
+            paid_until=None,
+            status='trial',
+        )
+        s.add(sub)
+        s.commit()
+        s.refresh(sub)
+    return sub
+
+
+def lender_subscription_active(s: Session, account: LenderAccount) -> bool:
+    sub = ensure_lender_subscription(s, account)
+    now = datetime.utcnow()
+    if sub.paid_until and sub.paid_until > now:
+        if sub.status != 'active':
+            sub.status = 'active'
+            s.commit()
+        return True
+    if sub.trial_ends_at > now:
+        if sub.status != 'trial':
+            sub.status = 'trial'
+            s.commit()
+        return True
+    if sub.status != 'expired':
+        sub.status = 'expired'
+        s.commit()
+    return False
+
+
+def current_lender(authorization: Optional[str], s: Session) -> LenderAccount:
+    account = current_lender_unrestricted(authorization, s)
+    if not lender_subscription_active(s, account):
+        raise HTTPException(402, 'Período grátis encerrado. Renove sua assinatura mensal para continuar usando o painel.')
     return account
 
 
