@@ -3,56 +3,87 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cadastro de Cliente • CRED+ Financeira</title>
-<link rel="stylesheet" href="/static/public-multi-client.css?v=1">
+<link rel="stylesheet" href="/static/public-multi-client.css?v=2">
 </head>
 <body>
 <main class="wrap">
   <section class="hero">
     <div class="logo">C+</div>
-    <div>
-      <div class="brand">CRED+ Financeira</div>
-      <div class="sub">Cadastro digital de cliente</div>
-    </div>
+    <div><div class="brand">CRED+ Financeira</div><div class="sub">Cadastro digital de cliente</div></div>
   </section>
+
   <section class="card">
     <div id="accountBox" class="account-box">Carregando responsável pelo cadastro...</div>
+
+    <section class="score-guide">
+      <div class="section-title">Pré-análise de crédito</div>
+      <p>O cadastro recebe uma pontuação de 0 a 100 com base em dados objetivos informados e documentos enviados.</p>
+      <div class="score-grid">
+        <div class="score-card low"><b>Score baixo</b><span>0 a 49 pontos</span><strong>até R$ 100</strong></div>
+        <div class="score-card medium"><b>Score médio</b><span>50 a 74 pontos</span><strong>até R$ 150</strong></div>
+        <div class="score-card high"><b>Score alto</b><span>75 a 100 pontos</span><strong>até R$ 350</strong></div>
+      </div>
+      <small>O score é uma pré-análise indicativa. A liberação de crédito depende de conferência e aprovação final do responsável pela carteira.</small>
+    </section>
+
     <h1>Faça seu cadastro</h1>
-    <p class="intro">Preencha seus dados com atenção. As informações serão enviadas diretamente para a carteira responsável pela análise.</p>
-    <form id="clientPublicForm">
-      <div class="section-title">Dados pessoais</div>
+    <p class="intro">Todos os campos abaixo são obrigatórios, exceto observações.</p>
+
+    <form id="clientPublicForm" enctype="multipart/form-data">
+      <div class="section-title">Identificação</div>
       <div class="grid">
         <label class="wide"><span>Nome completo *</span><input name="name" required autocomplete="name"></label>
-        <label><span>CPF</span><input name="cpf" inputmode="numeric" placeholder="000.000.000-00"></label>
+        <label><span>CPF *</span><input name="cpf" required inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label>
+        <label><span>RG *</span><input name="rg" required maxlength="30"></label>
         <label><span>WhatsApp *</span><input name="whatsapp" required inputmode="tel" placeholder="(91) 99999-9999"></label>
-        <label><span>Telefone</span><input name="phone" inputmode="tel"></label>
-        <label><span>E-mail</span><input name="email" type="email" autocomplete="email"></label>
+        <label><span>Telefone *</span><input name="phone" required inputmode="tel"></label>
+        <label><span>E-mail *</span><input name="email" type="email" required autocomplete="email"></label>
+        <label><span>Profissão *</span><input name="profession" required></label>
+        <label><span>Empresa / trabalho *</span><input name="company" required></label>
+        <label><span>Renda mensal declarada *</span><input name="income" type="number" min="0.01" step="0.01" required></label>
+        <label><span>Data do seu pagamento / recebimento *</span><input name="income_payment_date" type="date" required><small>Informe a próxima data em que você recebe seu salário, benefício ou rendimento.</small></label>
+        <label><span>Tempo no trabalho atual (meses) *</span><input name="time_at_work_months" type="number" min="0" step="1" required placeholder="Ex.: 12"></label>
+        <label class="wide file-field"><span>Selfie *</span><input id="selfie" name="selfie" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="user" required><small>Envie uma foto atual do rosto. Tamanho máximo: 5 MB.</small></label>
       </div>
 
       <div class="section-title">Endereço</div>
       <div class="grid">
-        <label class="wide"><span>Endereço completo *</span><input name="address" required placeholder="Rua, número, bairro e complemento"></label>
+        <label><span>CEP *</span><input name="cep" required inputmode="numeric" maxlength="9"></label>
+        <label><span>Rua *</span><input name="street" required></label>
+        <label><span>Número *</span><input name="address_number" required></label>
+        <label><span>Bairro *</span><input name="neighborhood" required></label>
         <label><span>Cidade *</span><input name="city" required></label>
         <label><span>Estado *</span><input name="state" required maxlength="2" placeholder="PA"></label>
+        <label class="wide"><span>Ponto de referência / complemento *</span><input name="address_reference" required></label>
+        <label class="wide file-field"><span>Foto do comprovante de residência *</span><input id="residenceProof" name="residence_proof" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" required><small>Fotografe o comprovante com os dados legíveis. Tamanho máximo: 5 MB.</small></label>
       </div>
 
-      <div class="section-title">Informações adicionais</div>
+      <div class="section-title">Referências pessoais</div>
+      <div class="grid">
+        <label><span>Referência 1 • nome *</span><input name="reference1_name" required></label>
+        <label><span>Referência 1 • telefone *</span><input name="reference1_phone" required inputmode="tel"></label>
+        <label><span>Referência 2 • nome *</span><input name="reference2_name" required></label>
+        <label><span>Referência 2 • telefone *</span><input name="reference2_phone" required inputmode="tel"></label>
+      </div>
+
+      <div class="section-title">Observações</div>
       <label><span>Observações</span><textarea name="notes" rows="4" placeholder="Se desejar, deixe alguma informação adicional."></textarea></label>
 
-      <label class="consent">
-        <input type="checkbox" name="consent" value="sim" required>
-        <span>Confirmo que os dados informados são verdadeiros e autorizo o envio deste cadastro para análise do responsável pela carteira.</span>
-      </label>
+      <label class="consent"><input type="checkbox" name="consent" value="sim" required><span>Confirmo que os dados informados são verdadeiros e autorizo o envio e armazenamento dos dados, incluindo CPF, RG, selfie, comprovante de residência e referências, para cadastro e análise pelo responsável da carteira.</span></label>
 
       <button id="submitBtn" type="submit">Enviar meu cadastro</button>
       <div id="msg" class="message"></div>
     </form>
+
     <div id="success" class="success hidden">
       <div class="success-icon">✓</div>
       <h2>Cadastro enviado com sucesso!</h2>
-      <p>Suas informações já foram encaminhadas para o responsável. Aguarde o contato para continuidade do atendimento.</p>
+      <p>Suas informações, selfie e comprovante de residência já foram encaminhados para o responsável.</p>
+      <div id="scoreResult" class="score-result"></div>
+      <p class="score-disclaimer">O resultado é uma pré-análise indicativa e não representa aprovação automática do empréstimo.</p>
     </div>
   </section>
   <footer>CRED+ Financeira • Cadastro digital seguro</footer>
 </main>
-<script src="/static/public-multi-client.js?v=1"></script>
+<script src="/static/public-multi-client.js?v=2"></script>
 </body></html>
