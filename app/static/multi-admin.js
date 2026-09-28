@@ -1,4 +1,4 @@
-const MULTI_TOKEN_KEY='cred_lender_token';let MULTI_TOKEN=localStorage.getItem(MULTI_TOKEN_KEY)||'';let MULTI_ME=null;let MULTI_PAGE='dashboard';let MULTI_CLIENTS=[];let MULTI_LOANS=[];let MULTI_INSTALLMENTS=[];
+const MULTI_TOKEN_KEY='cred_lender_token';let MULTI_TOKEN=localStorage.getItem(MULTI_TOKEN_KEY)||'';let MULTI_ME=null;let MULTI_SUB=null;let MULTI_PAGE='dashboard';let MULTI_CLIENTS=[];let MULTI_LOANS=[];let MULTI_INSTALLMENTS=[];
 const M$=id=>document.getElementById(id);const mmoney=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 function mesc(v=''){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function mfmt(v){if(!v)return '-';const d=String(v).slice(0,10).split('-');return d.length===3?d[2]+'/'+d[1]+'/'+d[0]:v}
@@ -8,9 +8,9 @@ async function mapi(url,opt={}){opt.headers={...(opt.headers||{}),Authorization:
 async function mrefresh(){[MULTI_ME,MULTI_CLIENTS,MULTI_LOANS,MULTI_INSTALLMENTS]=await Promise.all([mapi('/api/lender/me'),mapi('/api/lender/clients'),mapi('/api/lender/loans'),mapi('/api/lender/installments')]);M$('multiMeta').textContent=(MULTI_ME?.name||'')+' • Conta individual'}
 function multiShow(){M$('multiLogin').classList.add('hidden');M$('multiApp').classList.remove('hidden');multiRenderNav()}
 function multiLogout(){localStorage.removeItem(MULTI_TOKEN_KEY);MULTI_TOKEN='';MULTI_ME=null;location.href='/painel'}
-function multiRenderNav(){const items=[['dashboard','📊 Dashboard'],['clients','👥 Clientes'],['loans','📄 Contratos'],['installments','📅 Parcelas detalhadas'],['goals','🎯 Metas e comissão'],['delinquency','⚠️ Inadimplência'],['closings','🧾 Fechamentos'],['cash','💰 Caixa'],['users','🧑‍💼 Usuários'],['reports','📁 Relatórios'],['profile','👤 Meu perfil']];M$('multiNav').innerHTML=items.map(([k,l])=>'<button class="'+(MULTI_PAGE===k?'active':'')+'" onclick="multiGo(\''+k+'\')">'+l+'</button>').join('')+'<div class="sep"></div><button onclick="multiLogout()">🚪 Sair</button>'}
-async function multiGo(p){MULTI_PAGE=p;multiRenderNav();const titles={dashboard:'Dashboard Premium',clients:'Clientes',loans:'Contratos',installments:'Parcelas detalhadas',goals:'Metas e comissão',delinquency:'Inadimplência',closings:'Fechamentos',cash:'Caixa',users:'Usuários',reports:'Relatórios',profile:'Meu perfil'};M$('multiTitle').textContent=titles[p]||p;try{await window['multiRender_'+p]()}catch(e){mtoast(e.message)}}
-M$('multiLoginForm').addEventListener('submit',async e=>{e.preventDefault();const msg=M$('multiLoginMsg');msg.textContent='';try{const r=await fetch('/api/lender/login',{method:'POST',body:new FormData(e.currentTarget)});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Login inválido');MULTI_TOKEN=d.token;localStorage.setItem(MULTI_TOKEN_KEY,MULTI_TOKEN);await mrefresh();multiShow();multiGo('dashboard')}catch(err){msg.textContent=err.message}})
+function multiRenderNav(){const items=(MULTI_SUB&&!MULTI_SUB.active)?[['subscription','💳 Assinatura']]:[['dashboard','📊 Dashboard'],['clients','👥 Clientes'],['loans','📄 Contratos'],['installments','📅 Parcelas detalhadas'],['goals','🎯 Metas e comissão'],['delinquency','⚠️ Inadimplência'],['closings','🧾 Fechamentos'],['cash','💰 Caixa'],['users','🧑‍💼 Usuários'],['reports','📁 Relatórios'],['profile','👤 Meu perfil']];M$('multiNav').innerHTML=items.map(([k,l])=>'<button class="'+(MULTI_PAGE===k?'active':'')+'" onclick="multiGo(\''+k+'\')">'+l+'</button>').join('')+'<div class="sep"></div><button onclick="multiLogout()">🚪 Sair</button>'}
+async function multiGo(p){MULTI_PAGE=p;multiRenderNav();const titles={dashboard:'Dashboard Premium',clients:'Clientes',loans:'Contratos',installments:'Parcelas detalhadas',goals:'Metas e comissão',delinquency:'Inadimplência',closings:'Fechamentos',cash:'Caixa',users:'Usuários',reports:'Relatórios',profile:'Meu perfil',subscription:'Assinatura'};M$('multiTitle').textContent=titles[p]||p;try{await window['multiRender_'+p]()}catch(e){mtoast(e.message)}}
+M$('multiLoginForm').addEventListener('submit',async e=>{e.preventDefault();const msg=M$('multiLoginMsg');msg.textContent='';try{const r=await fetch('/api/lender/login',{method:'POST',body:new FormData(e.currentTarget)});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Login inválido');MULTI_TOKEN=d.token;localStorage.setItem(MULTI_TOKEN_KEY,MULTI_TOKEN);MULTI_SUB=await multiLoadSubscription();multiShow();if(MULTI_SUB.active){await mrefresh();multiGo('dashboard')}else{multiGo('subscription')}}catch(err){msg.textContent=err.message}})
 async function multiRender_dashboard(){const d=await mapi('/api/lender/dashboard');const todayItems=MULTI_INSTALLMENTS.filter(i=>i.status!=='paid'&&i.due_date===mtoday());const due=todayItems.length?`<div class="card due-today-card multi-due-card"><div class="toolbar"><div><h2>⚠️ Vencimentos de hoje</h2><div class="muted">${todayItems.length} parcela(s) • ${mmoney(todayItems.reduce((s,i)=>s+Math.max(0,Number(i.amount)-Number(i.paid_amount||0)),0))} a receber</div></div><button class="btn btn-soft" onclick="multiGo('installments')">Ver parcelas</button></div><div class="table-wrap"><table><tr><th>Cliente</th><th>Empréstimo</th><th>Parcela</th><th>Valor</th><th>Pago</th><th>Saldo</th><th>Ação</th></tr>${todayItems.map(i=>`<tr><td><b>${mesc(i.client)}</b></td><td>${mesc(i.loan)}</td><td>${i.number}</td><td>${mmoney(i.amount)}</td><td>${mmoney(i.paid_amount)}</td><td><b>${mmoney(Math.max(0,Number(i.amount)-Number(i.paid_amount||0)))}</b></td><td><button class="btn btn-ok btn-xs" onclick="multiPay(${i.id})">Quitar</button></td></tr>`).join('')}</table></div></div>`:'<div class="card due-today-card multi-due-card"><div class="toolbar"><div><h2>✅ Vencimentos de hoje</h2><div class="muted">Nenhuma parcela pendente vencendo hoje.</div></div></div></div>';M$('multiContent').innerHTML=due+`<div class="kpis"><div class="kpi"><div class="lab">Clientes</div><div class="val">${d.clients}</div></div><div class="kpi"><div class="lab">Empréstimos ativos</div><div class="val">${d.active_loans}</div></div><div class="kpi"><div class="lab">A receber</div><div class="val">${mmoney(d.receivable)}</div></div><div class="kpi"><div class="lab">Em atraso</div><div class="val">${mmoney(d.overdue)}</div></div><div class="kpi"><div class="lab">Recebido hoje</div><div class="val">${mmoney(d.received_today)}</div></div></div><div class="card"><div class="toolbar"><div><h2>Operação</h2><div class="muted">Sua carteira é privada e separada das demais contas.</div></div><div class="actions"><button class="btn btn-primary" onclick="multiClientForm()">+ Novo cliente</button><button class="btn btn-soft" onclick="multiLoanForm()">+ Novo empréstimo</button><button class="btn btn-warn" onclick="multiPublicClientLink()">🔗 Link de cadastro</button></div></div><div class="mini-grid"><div class="mini"><div class="t">Capital emprestado</div><div class="v">${mmoney(d.principal_total)}</div></div><div class="mini"><div class="t">Recebido no mês</div><div class="v">${mmoney(d.received_month)}</div></div><div class="mini"><div class="t">Parcelas atrasadas</div><div class="v">${d.overdue_count}</div></div></div></div>`}
 async function multiRender_clients(){M$('multiContent').innerHTML=`<div class="card"><div class="toolbar"><h2>Meus clientes</h2><div class="actions"><button class="btn btn-primary" onclick="multiClientForm()">+ Novo cliente</button><button class="btn btn-warn" onclick="multiPublicClientLink()">🔗 Link de cadastro</button><input class="search" placeholder="Buscar cliente" oninput="multiFilter('multiClientsBody',this.value)"></div></div><div class="table-wrap"><table><tr><th>Cliente</th><th>CPF</th><th>Contato</th><th>Cidade</th><th>Ações</th></tr><tbody id="multiClientsBody">${MULTI_CLIENTS.map(c=>`<tr><td><b>${mesc(c.name)}</b></td><td>${mesc(c.cpf||'-')}</td><td>${mesc(c.whatsapp||c.phone||'-')}</td><td>${mesc(c.city||'-')}</td><td><div class="actions"><button class="btn btn-soft btn-xs" onclick="multiClientForm(${c.id})">Editar</button><button class="btn btn-primary btn-xs" onclick="multiLoanForm(${c.id})">Emprestar</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum cliente cadastrado.</td></tr>'}</tbody></table></div></div>`}
 function multiOpen(html){M$('multiModalBox').innerHTML=html;M$('multiModal').classList.remove('hidden')}function multiClose(){M$('multiModal').classList.add('hidden');M$('multiModalBox').innerHTML=''}
@@ -77,7 +77,7 @@ async function multiRender_reports(){const totalPrincipal=MULTI_LOANS.reduce((s,
 async function multiRender_profile(){M$('multiContent').innerHTML=`<div class="card"><div class="toolbar"><h2>Meu perfil</h2><button class="btn btn-primary" onclick="multiProfileForm()">Editar dados</button></div><div class="info-grid"><div class="info"><div class="k">Nome</div><div class="v">${mesc(MULTI_ME.name)}</div></div><div class="info"><div class="k">E-mail / login</div><div class="v">${mesc(MULTI_ME.email)}</div></div><div class="info"><div class="k">CPF</div><div class="v">${mesc(MULTI_ME.cpf)}</div></div><div class="info"><div class="k">WhatsApp</div><div class="v">${mesc(MULTI_ME.whatsapp||'-')}</div></div><div class="info"><div class="k">Cidade</div><div class="v">${mesc(MULTI_ME.city||'-')}</div></div><div class="info"><div class="k">Estado</div><div class="v">${mesc(MULTI_ME.state||'-')}</div></div></div></div>`}
 function multiProfileForm(){multiOpen(`<div class="modal-head"><h2>Editar perfil</h2><button class="btn btn-soft" onclick="multiClose()">Fechar</button></div><form id="multiProfileForm"><div class="form-section"><div class="form-grid"><div class="field wide"><label>Nome</label><input name="name" value="${mesc(MULTI_ME.name)}" required></div><div class="field"><label>WhatsApp</label><input name="whatsapp" value="${mesc(MULTI_ME.whatsapp||'')}"></div><div class="field"><label>Profissão</label><input name="profession" value="${mesc(MULTI_ME.profession||'')}"></div><div class="field"><label>Cidade</label><input name="city" value="${mesc(MULTI_ME.city||'')}"></div><div class="field"><label>Estado</label><input name="state" value="${mesc(MULTI_ME.state||'')}"></div><div class="field wide"><label>Endereço</label><input name="address" value="${mesc(MULTI_ME.address||'')}"></div></div></div><div class="foot"><button class="btn btn-primary">Salvar</button></div></form>`);M$('multiProfileForm').onsubmit=async e=>{e.preventDefault();try{await mapi('/api/lender/me',{method:'PATCH',body:new FormData(e.currentTarget)});await mrefresh();multiClose();multiRender_profile()}catch(err){mtoast(err.message)}}}
 function multiFilter(id,q){q=String(q||'').toLowerCase();document.querySelectorAll('#'+id+' tr').forEach(tr=>tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none')}
-(async()=>{if(MULTI_TOKEN){try{await mrefresh();multiShow();multiGo('dashboard')}catch{localStorage.removeItem(MULTI_TOKEN_KEY);MULTI_TOKEN=''}}})();
+(async()=>{if(MULTI_TOKEN){try{MULTI_SUB=await multiLoadSubscription();multiShow();if(MULTI_SUB.active){await mrefresh();multiGo('dashboard')}else{multiGo('subscription')}}catch{localStorage.removeItem(MULTI_TOKEN_KEY);MULTI_TOKEN=''}}})();
 async function multiPublicClientLink(){
   try{
     const d=await mapi('/api/lender/public-client-link');
@@ -90,4 +90,49 @@ async function multiPublicClientLink(){
 async function multiCopyPublicLink(){
   const el=M$('multiPublicLinkInput');if(!el)return;
   try{await navigator.clipboard.writeText(el.value);mtoast('Link copiado')}catch{el.select();document.execCommand('copy');mtoast('Link copiado')}
+}
+
+async function multiLoadSubscription(){
+  const r=await fetch('/api/lender/subscription/status',{headers:{Authorization:'Bearer '+MULTI_TOKEN}});
+  const d=await r.json().catch(()=>({}));
+  if(r.status===401){multiLogout();throw new Error('Sessão expirada.')}
+  if(!r.ok)throw new Error(d.detail||'Não foi possível verificar a assinatura.');
+  return d;
+}
+function multiSubscriptionDate(v){if(!v)return '-';const d=new Date(v);return d.toLocaleDateString('pt-BR')}
+async function multiRender_subscription(){
+  MULTI_SUB=await multiLoadSubscription();multiRenderNav();
+  const s=MULTI_SUB;
+  if(s.active){
+    M$('multiContent').innerHTML='<div class="card"><div class="toolbar"><div><h2>✅ Assinatura ativa</h2><div class="muted">Seu acesso está liberado.</div></div><button class="btn btn-primary" onclick="mrefresh().then(()=>multiGo(\'dashboard\'))">Ir para o Dashboard</button></div></div>';
+    return;
+  }
+  M$('multiMeta').textContent=(s.account_name||'Conta')+' • Assinatura necessária';
+  M$('multiContent').innerHTML=`<div class="card" style="max-width:760px;margin:20px auto">
+    <div class="toolbar"><div><h2>💳 Assinatura mensal</h2><div class="muted">Seu período grátis de 7 dias terminou.</div></div></div>
+    <div class="mini-grid">
+      <div class="mini"><div class="t">Mensalidade</div><div class="v">${mmoney(s.price)}</div></div>
+      <div class="mini"><div class="t">Forma de pagamento</div><div class="v">PIX</div></div>
+      <div class="mini"><div class="t">Liberação</div><div class="v">30 dias</div></div>
+    </div>
+    <div class="form-section"><div class="form-title">1. Faça o PIX</div><div class="field"><label>Chave PIX</label><input id="multiPixKey" readonly value="${mesc(s.pix_key||'')}"></div><button class="btn btn-soft" onclick="multiCopyPix()">Copiar chave PIX</button></div>
+    <div class="form-section"><div class="form-title">2. Envie o comprovante</div>
+      ${s.pending_payment?'<div class="empty">⏳ Comprovante enviado. Aguarde a aprovação do pagamento.</div>':`<form id="multiSubscriptionForm"><div class="field"><label>Comprovante do PIX</label><input name="proof" type="file" accept="image/*,application/pdf" required></div><div class="foot"><button class="btn btn-primary">Enviar comprovante</button></div></form>`}
+    </div>
+    <div class="muted">Após a aprovação, o acesso será liberado por mais 30 dias.</div>
+  </div>`;
+  const f=M$('multiSubscriptionForm');if(f)f.onsubmit=multiSubmitSubscription;
+}
+async function multiSubmitSubscription(e){
+  e.preventDefault();
+  try{
+    await mapi('/api/lender/subscription/payment',{method:'POST',body:new FormData(e.currentTarget)});
+    mtoast('Comprovante enviado para aprovação');
+    MULTI_SUB=await multiLoadSubscription();
+    multiRender_subscription();
+  }catch(err){mtoast(err.message)}
+}
+async function multiCopyPix(){
+  const el=M$('multiPixKey');if(!el)return;
+  try{await navigator.clipboard.writeText(el.value);mtoast('Chave PIX copiada')}catch{el.select();document.execCommand('copy');mtoast('Chave PIX copiada')}
 }
