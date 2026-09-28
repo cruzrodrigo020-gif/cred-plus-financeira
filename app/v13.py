@@ -16,9 +16,10 @@ from app.v15_lender import router as lender_router
 from app.v16_chat import router as chat_router
 from app.v17_payment import router as payment_actions_router
 from app.v18_reports import router as reports_router
+from app.v19_multi_public import router as multi_public_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.15.1'
+app.version = '12.16.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
@@ -27,13 +28,14 @@ app.include_router(lender_router)
 app.include_router(chat_router)
 app.include_router(payment_actions_router)
 app.include_router(reports_router)
+app.include_router(multi_public_router)
 
 
 @app.middleware('http')
 async def no_cache_app_pages(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v18-reports.js' or path.startswith('/static/multi-'):
+    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v18-reports.js' or path.startswith('/static/multi-') or path.startswith('/static/public-multi-client.') or path.startswith('/painel/cliente/'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
@@ -113,3 +115,8 @@ def multi_admin_register():
 @app.get('/painel/cadastro/')
 def multi_admin_register_slash():
     return _no_cache_file('app/static/multi-register.html')
+
+
+@app.get('/painel/cliente/{token}')
+def multi_public_client_page(token: str):
+    return _no_cache_file('app/static/public-multi-client.html')
