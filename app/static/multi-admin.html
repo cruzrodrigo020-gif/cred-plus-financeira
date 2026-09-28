@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel Administrativo • CRED+ Financeira</title>
+<link rel="stylesheet" href="/static/v12.css?v=4">
+<link rel="stylesheet" href="/static/sidebar-scroll.css?v=1">
+<link rel="stylesheet" href="/static/multi-admin.css?v=1">
+</head>
+<body>
+<section id="multiLogin" class="login">
+  <div class="login-card">
+    <div class="login-mark">＋</div>
+    <div class="brand">CRED<span>+</span></div>
+    <p><b>Painel Administrativo</b><br><span class="muted">Sua carteira, seus clientes e seus empréstimos em um painel privado.</span></p>
+    <form id="multiLoginForm">
+      <div class="field"><label>Login (e-mail)</label><input name="email" type="email" required autocomplete="email"></div>
+      <div class="field"><label>Senha</label><input name="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn btn-primary full" type="submit">Entrar no painel</button>
+      <div id="multiLoginMsg" class="muted" style="margin-top:10px"></div>
+    </form>
+    <div class="multi-register-link">Ainda não tem acesso? <a href="/painel/cadastro">Criar minha conta</a></div>
+  </div>
+</section>
+
+<div id="multiApp" class="hidden">
+  <aside class="sidebar">
+    <div class="side-brand"><div class="brand">CRED<span>+</span></div><div class="side-sub">PAINEL • ADMINISTRATIVO</div></div>
+    <div id="multiNav" class="nav"></div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div><h1 id="multiTitle">Dashboard</h1><div id="multiMeta" class="top-meta"></div></div>
+      <div class="actions"><button class="glass" onclick="multiGo(MULTI_PAGE)">Atualizar</button><button class="glass" onclick="multiLogout()">Sair</button></div>
+    </div>
+    <div id="multiContent"></div>
+  </main>
+</div>
+<div id="multiModal" class="modal hidden"><div id="multiModalBox" class="modal-box"></div></div>
+<div id="multiToast" class="toast hidden"></div>
+<script src="/static/multi-admin.js?v=1"></script>
+</body>
+</html>
