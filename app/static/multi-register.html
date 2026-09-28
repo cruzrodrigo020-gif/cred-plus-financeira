@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Criar conta • Painel Administrativo CRED+</title>
+<link rel="stylesheet" href="/static/v12.css?v=4">
+<link rel="stylesheet" href="/static/multi-admin.css?v=1">
+</head>
+<body>
+<section class="login">
+  <div class="login-card multi-register-card">
+    <div class="login-mark">＋</div>
+    <div class="brand">CRED<span>+</span></div>
+    <p><b>Criar meu Painel Administrativo</b><br><span class="muted">Cada conta possui uma carteira privada e separada das demais.</span></p>
+    <form id="multiRegisterForm">
+      <div class="form-grid">
+        <div class="field wide"><label>Nome completo *</label><input name="name" required></div>
+        <div class="field"><label>CPF *</label><input name="cpf" required inputmode="numeric"></div>
+        <div class="field"><label>WhatsApp *</label><input name="whatsapp" required></div>
+        <div class="field wide"><label>Login (seu e-mail) *</label><input name="email" type="email" required autocomplete="email"></div>
+        <div class="field"><label>Crie uma senha *</label><input id="multiPassword" name="password" type="password" minlength="8" required autocomplete="new-password"></div>
+        <div class="field"><label>Confirme a senha *</label><input id="multiConfirm" type="password" minlength="8" required autocomplete="new-password"></div>
+        <div class="field"><label>Profissão</label><input name="profession"></div>
+        <div class="field"><label>Cidade</label><input name="city"></div>
+        <div class="field"><label>Estado</label><input name="state" maxlength="2"></div>
+        <div class="field wide"><label>Endereço</label><input name="address"></div>
+      </div>
+      <input type="hidden" name="rg" value="">
+      <input type="hidden" name="birth_date" value="">
+      <label class="multi-consent"><input type="checkbox" name="consent" value="sim" required><span>Confirmo que os dados são meus e aceito criar uma conta individual no sistema. O painel é uma ferramenta de gestão e não representa autorização regulatória para concessão de crédito.</span></label>
+      <button id="multiRegisterBtn" class="btn btn-primary full" type="submit">Criar minha conta</button>
+      <div id="multiRegisterMsg" class="muted" style="margin-top:10px"></div>
+    </form>
+    <div class="multi-register-link">Já possui conta? <a href="/painel">Entrar no painel</a></div>
+  </div>
+</section>
+<script src="/static/multi-register.js?v=1"></script>
+</body>
+</html>
