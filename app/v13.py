@@ -19,7 +19,7 @@ from app.v18_reports import router as reports_router
 from app.v19_multi_public import router as multi_public_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.16.0'
+app.version = '12.16.1'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
