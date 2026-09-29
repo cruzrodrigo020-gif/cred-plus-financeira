@@ -108,6 +108,119 @@ def create_contract(
     return {'id': x.id, 'number': number}
 
 
+@router.patch('/api/contracts/{contract_id}')
+def edit_contract(
+    contract_id: int,
+    client_id: int = Form(...),
+    principal: float = Form(...),
+    rate: float = Form(...),
+    installments: int = Form(...),
+    first_due: str = Form(...),
+    authorization: Optional[str] = Header(None),
+    s: Session = Depends(db),
+):
+    u = current_user(authorization, s)
+    require_admin(u)
+
+    c = s.get(Contract, contract_id)
+    if not c:
+        raise HTTPException(404, 'Contrato não encontrado')
+    client = s.get(Client, client_id)
+    if not client:
+        raise HTTPException(404, 'Cliente não encontrado')
+    if principal <= 0:
+        raise HTTPException(400, 'O valor principal deve ser maior que zero')
+    if rate < 0:
+        raise HTTPException(400, 'A taxa de juros não pode ser negativa')
+    if installments <= 0:
+        raise HTTPException(400, 'A quantidade de parcelas deve ser maior que zero')
+    if c.periodicity == 'monthly' and installments > 10:
+        raise HTTPException(400, 'Acordos podem ter no máximo 10 parcelas mensais')
+
+    has_payments = s.query(Payment).filter_by(contract_id=c.id).first() is not None
+    has_paid_amount = s.query(Installment).filter(
+        Installment.contract_id == c.id,
+        Installment.paid_amount > 0
+    ).first() is not None
+    if has_payments or has_paid_amount:
+        raise HTTPException(
+            400,
+            'Este contrato já possui pagamento registrado. Para proteger o histórico financeiro, altere apenas datas individuais das parcelas ou estorne os pagamentos antes de editar valores e quantidade de parcelas.'
+        )
+
+    due = parse_date(first_due, 'primeiro vencimento')
+    n = 1 if c.periodicity == 'final' else installments
+    total = round(principal * (1 + rate / 100), 2)
+
+    values = []
+    base = int((total / n) * 100) / 100
+    running = 0.0
+    for idx in range(n):
+        value = base if idx < n - 1 else round(total - running, 2)
+        values.append(value)
+        running = round(running + value, 2)
+
+    old_principal = c.principal
+    old_client_id = c.client_id
+    old_rate = c.rate
+    old_installments = c.installments
+    old_first_due = c.first_due
+
+    for item in s.query(Installment).filter_by(contract_id=c.id).all():
+        s.delete(item)
+    s.flush()
+
+    c.client_id = client.id
+    c.principal = principal
+    c.total = total
+    c.installments = n
+    c.installment_value = round(total / n, 2)
+    c.first_due = due
+    c.rate = rate
+    c.collector_id = client.collector_id
+
+    for idx, value in enumerate(values, 1):
+        if c.periodicity == 'final':
+            item_due = due
+        elif c.periodicity == 'monthly':
+            item_due = add_months(due, idx - 1)
+        else:
+            item_due = due + timedelta(days=idx - 1)
+        s.add(Installment(
+            contract_id=c.id,
+            number=idx,
+            due_date=item_due,
+            amount=value,
+            status='pending',
+            paid_amount=0,
+        ))
+
+    cash_entry = s.query(Cash).filter(
+        Cash.kind == 'out',
+        Cash.reference_id == c.number,
+    ).order_by(Cash.id.asc()).first()
+    if cash_entry:
+        cash_entry.amount = principal
+        cash_entry.description = c.number
+
+    s.commit()
+    log(
+        s, u, 'CONTRACT_EDIT',
+        f'{c.number}: client {old_client_id}->{client.id}; principal {old_principal}->{principal}; '
+        f'rate {old_rate}->{rate}; installments {old_installments}->{n}; due {old_first_due}->{due}'
+    )
+    return {
+        'ok': True,
+        'id': c.id,
+        'number': c.number,
+        'principal': c.principal,
+        'total': c.total,
+        'rate': c.rate,
+        'installments': c.installments,
+        'first_due': str(c.first_due),
+    }
+
+
 @router.get('/api/installments')
 def installments(authorization: Optional[str] = Header(None), s: Session = Depends(db)):
     u = current_user(authorization, s)
