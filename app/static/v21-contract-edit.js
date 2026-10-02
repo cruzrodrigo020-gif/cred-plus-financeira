@@ -2,7 +2,7 @@ const _baseRenderContractsEdit = render_contracts;
 
 render_contracts = async function(){
   const a = await api('/api/contracts');
-  $('content').innerHTML = `<div class="card"><div class="toolbar"><div><h2>Empréstimos e acordos</h2><div class="muted">Acordos podem ter de 1 a 10 parcelas com vencimento mensal.</div></div><div class="actions">${U.role==='admin'?'<button class="btn btn-primary" onclick="contractForm(false)">+ Novo empréstimo</button><button class="btn btn-warn" onclick="contractForm(true)">+ Novo acordo</button>':''}<input class="search" placeholder="Buscar contrato ou cliente" oninput="filterRows('contractsBody',this.value)"></div></div><div class="table-wrap"><table><tr><th>Contrato</th><th>Tipo</th><th>Cliente</th><th>Principal</th><th>Total</th><th>Parcelas</th><th>1º vencimento</th><th>Status</th><th>Ação</th></tr><tbody id="contractsBody">${a.map(k=>`<tr><td><b>${esc(k.number)}</b></td><td>${k.periodicity==='monthly'?'<span class="badge pending">Acordo</span>':'<span class="badge active">Empréstimo</span>'}</td><td>${esc(k.client)}</td><td>${money(k.principal)}</td><td>${money(k.total)}</td><td>${k.installments}</td><td>${fmt(k.first_due)}</td><td><span class="badge active">${esc(k.status)}</span></td><td><div class="actions"><button class="btn btn-soft btn-xs" onclick="contractView(${k.id})">Abrir</button>${U.role==='admin'?`<button class="btn btn-primary btn-xs" onclick="editContractForm(${k.id})">Editar</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">Nenhum empréstimo ou acordo.</td></tr>'}</tbody></table></div></div>`;
+  $('content').innerHTML = `<div class="card"><div class="toolbar"><div><h2>Empréstimos e acordos</h2><div class="muted">Acordos podem ter de 1 a 10 parcelas com vencimento mensal.</div></div><div class="actions">${U.role==='admin'?'<button class="btn btn-primary" onclick="contractForm(false)">+ Novo empréstimo</button><button class="btn btn-warn" onclick="contractForm(true)">+ Novo acordo</button>':''}<input class="search" placeholder="Buscar contrato ou cliente" oninput="filterRows('contractsBody',this.value)"></div></div><div class="table-wrap"><table><tr><th>Contrato</th><th>Tipo</th><th>Cliente</th><th>Principal</th><th>Total</th><th>Parcelas</th><th>1º vencimento</th><th>Status</th><th>Ação</th></tr><tbody id="contractsBody">${a.map(k=>`<tr><td><b>${esc(k.number)}</b></td><td>${k.periodicity==='monthly'?'<span class="badge pending">Acordo</span>':'<span class="badge active">Empréstimo</span>'}</td><td>${esc(k.client)}</td><td>${money(k.principal)}</td><td>${money(k.total)}</td><td>${k.installments}</td><td>${fmt(k.first_due)}</td><td><span class="badge active">${esc(k.status)}</span></td><td><div class="actions"><button class="btn btn-soft btn-xs" onclick="contractView(${k.id})">Abrir</button>${U.role==='admin'?`<button class="btn btn-primary btn-xs" onclick="editContractForm(${k.id})">Editar</button><button class="btn btn-ok btn-xs" onclick="shareContractWhatsApp(${k.id})">WhatsApp</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">Nenhum empréstimo ou acordo.</td></tr>'}</tbody></table></div></div>`;
 };
 
 async function editContractForm(id){
@@ -43,5 +43,52 @@ async function saveContractEdit(e,id){
     await render_contracts();
   }catch(err){
     toast(err.message);
+  }
+}
+
+function contractWhatsAppNumber(phone){
+  let n=String(phone||'').replace(/\D/g,'');
+  if(!n)return '';
+  if(n.startsWith('55'))return n;
+  return '55'+n;
+}
+
+async function shareContractWhatsApp(id){
+  try{
+    const k=await api('/api/contracts/'+id);
+    const c=await api('/api/clients/'+k.client_id);
+    const phone=contractWhatsAppNumber(c.whatsapp||c.phone);
+    if(!phone)return toast('Este cliente não possui WhatsApp ou telefone cadastrado');
+
+    const installmentValue=k.items?.length?Number(k.items[0].amount||0):Number(k.total||0)/Math.max(1,Number(k.installments||1));
+    const modality=k.periodicity==='monthly'?'Acordo mensal':k.periodicity==='final'?'Pagamento único':'Empréstimo';
+    const lines=[
+      `Olá, ${k.client}! 👋`,
+      '',
+      'Segue o resumo do seu empréstimo na CRED+ Financeira:',
+      '',
+      `📄 Contrato: ${k.number}`,
+      `💰 Valor liberado: ${money(k.principal)}`,
+      `📈 Juros: ${Number(k.rate||0).toFixed(2)}%`,
+      `💵 Total do contrato: ${money(k.total)}`,
+      `📌 Modalidade: ${modality}`,
+      `🧾 Parcelas: ${k.items?.length||k.installments}`,
+      `💳 Valor da parcela: ${money(installmentValue)}`,
+      `📅 Primeiro vencimento: ${fmt(k.first_due)}`
+    ];
+
+    if(k.items?.length){
+      lines.push('','📋 Cronograma de parcelas:');
+      k.items.forEach(i=>{
+        const status=i.status==='paid'?'✅ Pago':(i.status==='unpaid'?'❌ Não pago':'⏳ Pendente');
+        lines.push(`${String(i.number).padStart(2,'0')} • ${fmt(i.due_date)} • ${money(i.amount)} • ${status}`);
+      });
+    }
+
+    lines.push('','CRED+ Financeira');
+    const url='https://wa.me/'+phone+'?text='+encodeURIComponent(lines.join('\n'));
+    window.open(url,'_blank');
+  }catch(err){
+    toast(err.message||'Não foi possível compartilhar o empréstimo');
   }
 }
