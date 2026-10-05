@@ -21,7 +21,7 @@ from app.v20_subscriptions import router as subscriptions_router
 from app.v22_delinquency import router as delinquency_router
 
 app.title = 'CRED+ Financeira Premium'
-app.version = '12.19.1'
+app.version = '12.20.0'
 app.include_router(growth_router)
 app.include_router(whatsapp_router)
 app.include_router(delete_router)
@@ -39,7 +39,7 @@ app.include_router(delinquency_router)
 async def no_cache_app_pages(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v13-delete.js' or path == '/static/v18-reports.js' or path.startswith('/static/multi-') or path.startswith('/static/public-multi-client.') or path == '/static/v20-subscriptions.js' or path == '/static/v21-contract-edit.js' or path == '/static/v22-delinquency.js' or path.startswith('/painel/cliente/'):
+    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v13-delete.js' or path == '/static/v18-reports.js' or path.startswith('/static/multi-') or path.startswith('/static/public-multi-client.') or path == '/static/v20-subscriptions.js' or path == '/static/v21-contract-edit.js' or path == '/static/v22-delinquency.js' or path == '/static/v23-installment-order.js' or path.startswith('/painel/cliente/'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
