@@ -21,11 +21,12 @@ render_contracts = async function(){
   const contracts = await api('/api/contracts');
   const rows = Array.from(document.querySelectorAll('#contractsBody tr'));
   contracts.forEach((c, idx) => {
+    if(!c.is_paid) return;
     const row = rows[idx];
     if(!row) return;
-    const box = row.querySelector('td:last-child');
+    const box = row.querySelector('td:last-child .actions') || row.querySelector('td:last-child');
     if(box && !box.querySelector('.delete-contract-btn')){
-      box.insertAdjacentHTML('beforeend', ` <button class="btn btn-bad btn-xs delete-contract-btn" onclick="deleteContract(${c.id})">Excluir</button>`);
+      box.insertAdjacentHTML('beforeend', `<button class="btn btn-bad btn-xs delete-contract-btn" onclick="deleteContract(${c.id},'${String(c.number||'').replace(/'/g,"\\'")}')">Excluir quitado</button>`);
     }
   });
 };
@@ -47,17 +48,20 @@ contractView = async function(id){
   await _contractViewBeforeDelete(id);
   if(U?.role !== 'admin') return;
   const c = await api('/api/contracts/'+id);
+  if(!c.is_paid) return;
   const head = document.querySelector('#modalBox .modal-head');
   if(head && !head.querySelector('.delete-contract-btn')){
-    head.insertAdjacentHTML('beforeend', `<button class="btn btn-bad delete-contract-btn" onclick="deleteContract(${c.id})">Excluir contrato</button>`);
+    head.insertAdjacentHTML('beforeend', `<button class="btn btn-bad delete-contract-btn" onclick="deleteContract(${c.id},'${String(c.number||'').replace(/'/g,"\\'")}')">Excluir contrato quitado</button>`);
   }
 };
 
-async function deleteContract(id){
+async function deleteContract(id,number=''){
+  const label = number ? ` ${number}` : '';
+  if(!confirm(`Excluir definitivamente o contrato quitado${label}?\n\nAs parcelas e pagamentos vinculados serão removidos da tela, mas os lançamentos históricos do Caixa serão preservados.`)) return;
   try{
     await api('/api/contracts/'+id,{method:'DELETE'});
     closeModal();
-    toast('Contrato excluído e caixa recalculado.');
+    toast('Contrato quitado excluído. Histórico do Caixa preservado.');
     if(PAGE === 'contracts') await render_contracts(); else await go(PAGE);
   }catch(e){ toast(e.message); }
 }
