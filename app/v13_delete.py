@@ -1,14 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.v12_models import (
-    Client, Contract, Installment, Payment, Cash, ClientAttachment
+    Client, Contract, Installment, Payment, ClientAttachment
 )
 from app.v12_helpers import db, current_user, require_admin, log
 from app.v12_growth import CollectorRouteStop
+from app.v22_delinquency import ContractLateFeeRule
 
 router = APIRouter()
 
@@ -25,34 +25,41 @@ def delete_contract(
     if not contract:
         raise HTTPException(404, 'Contrato não encontrado')
 
+    installments = s.query(Installment).filter(Installment.contract_id == contract_id).all()
+    if not installments:
+        raise HTTPException(409, 'Este contrato não possui parcelas e não pode ser excluído por esta opção.')
+
+    balance = round(sum(max(0, float(i.amount or 0) - float(i.paid_amount or 0)) for i in installments), 2)
+    fully_paid = balance <= 0.005 and all(
+        i.status == 'paid' or float(i.paid_amount or 0) >= float(i.amount or 0) - 0.005
+        for i in installments
+    )
+    if not fully_paid:
+        raise HTTPException(
+            409,
+            f'Somente contratos totalmente pagos podem ser excluídos. Saldo atual: R$ {balance:.2f}'.replace('.', ',')
+        )
+
     client_id = contract.client_id
     contract_number = contract.number
-    installment_ids = [
-        row[0] for row in s.query(Installment.id).filter(Installment.contract_id == contract_id).all()
-    ]
 
-    refs = [contract_number]
-    refs += [f'INST-{iid}' for iid in installment_ids]
-    refs += [f'ESTORNO-INST-{iid}' for iid in installment_ids]
+    # Mantém os movimentos de caixa já registrados para preservar o histórico financeiro.
+    # Remove apenas registros que possuem FK direta para o contrato.
+    s.query(ContractLateFeeRule).filter(
+        ContractLateFeeRule.contract_id == contract_id
+    ).delete(synchronize_session=False)
 
-    # Exclusão explícita em ordem de dependência para respeitar as FKs do PostgreSQL.
-    # 1) movimentos financeiros ligados ao contrato/parcela
-    if refs:
-        s.query(Cash).filter(
-            or_(
-                Cash.reference_id.in_(refs),
-                Cash.description.like(f'{contract_number}%'),
-            )
-        ).delete(synchronize_session=False)
+    s.query(Payment).filter(
+        Payment.contract_id == contract_id
+    ).delete(synchronize_session=False)
 
-    # 2) pagamentos apontam para parcelas e contrato
-    s.query(Payment).filter(Payment.contract_id == contract_id).delete(synchronize_session=False)
+    s.query(Installment).filter(
+        Installment.contract_id == contract_id
+    ).delete(synchronize_session=False)
 
-    # 3) parcelas apontam para o contrato
-    s.query(Installment).filter(Installment.contract_id == contract_id).delete(synchronize_session=False)
-
-    # 4) só então o contrato pode ser removido
-    deleted = s.query(Contract).filter(Contract.id == contract_id).delete(synchronize_session=False)
+    deleted = s.query(Contract).filter(
+        Contract.id == contract_id
+    ).delete(synchronize_session=False)
     if not deleted:
         s.rollback()
         raise HTTPException(404, 'Contrato não encontrado')
@@ -65,8 +72,18 @@ def delete_contract(
         ).delete(synchronize_session=False)
 
     s.commit()
-    log(s, user, 'CONTRACT_DELETE', f'id={contract_id};number={contract_number};client_id={client_id}')
-    return {'ok': True, 'contract_id': contract_id, 'number': contract_number}
+    log(
+        s,
+        user,
+        'PAID_CONTRACT_DELETE',
+        f'id={contract_id};number={contract_number};client_id={client_id};cash_history=preserved'
+    )
+    return {
+        'ok': True,
+        'contract_id': contract_id,
+        'number': contract_number,
+        'cash_history_preserved': True,
+    }
 
 
 @router.delete('/api/clients/{client_id}')
@@ -90,7 +107,6 @@ def delete_client(
 
     client_name = client.name
 
-    # Limpa dependências diretas do cliente antes de apagar a ficha.
     s.query(ClientAttachment).filter(
         ClientAttachment.client_id == client_id
     ).delete(synchronize_session=False)
