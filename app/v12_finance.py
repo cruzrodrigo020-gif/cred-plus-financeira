@@ -31,9 +31,16 @@ def contracts(authorization: Optional[str] = Header(None), s: Session = Depends(
     out = []
     for x in visible_contracts_query(s, u).order_by(Contract.id.desc()).all():
         client = s.get(Client, x.client_id)
+        items = s.query(Installment).filter(Installment.contract_id == x.id).all()
+        balance = round(sum(max(0, float(i.amount or 0) - float(i.paid_amount or 0)) for i in items), 2)
+        is_paid = bool(items) and balance <= 0.005 and all(
+            i.status == 'paid' or float(i.paid_amount or 0) >= float(i.amount or 0) - 0.005
+            for i in items
+        )
         out.append({'id': x.id, 'number': x.number, 'client_id': x.client_id, 'client': client.name if client else '-',
                     'principal': x.principal, 'total': x.total, 'installments': x.installments,
-                    'first_due': str(x.first_due), 'rate': x.rate, 'periodicity': x.periodicity, 'status': x.status})
+                    'first_due': str(x.first_due), 'rate': x.rate, 'periodicity': x.periodicity, 'status': x.status,
+                    'balance': balance, 'is_paid': is_paid})
     return out
 
 
@@ -47,10 +54,16 @@ def contract_detail(contract_id: int, authorization: Optional[str] = Header(None
         raise HTTPException(403, 'Contrato fora da sua carteira')
     client = s.get(Client, c.client_id)
     installments = s.query(Installment).filter_by(contract_id=c.id).order_by(Installment.number).all()
+    balance = round(sum(max(0, float(i.amount or 0) - float(i.paid_amount or 0)) for i in installments), 2)
+    is_paid = bool(installments) and balance <= 0.005 and all(
+        i.status == 'paid' or float(i.paid_amount or 0) >= float(i.amount or 0) - 0.005
+        for i in installments
+    )
     return {
         'id': c.id, 'number': c.number, 'client': client.name if client else '-', 'client_id': c.client_id,
         'principal': c.principal, 'total': c.total, 'installments': c.installments, 'first_due': str(c.first_due),
         'rate': c.rate, 'periodicity': c.periodicity, 'status': c.status,
+        'balance': balance, 'is_paid': is_paid,
         'items': [
             {'id': i.id, 'number': i.number, 'due_date': str(i.due_date), 'amount': i.amount,
              'paid_amount': i.paid_amount, 'status': i.status, 'paid_at': str(i.paid_at) if i.paid_at else ''}
@@ -310,6 +323,5 @@ def receipt_pdf(payment_id: int, authorization: Optional[str] = Header(None), s:
     c = s.get(Contract, p.contract_id)
     if u.role == 'collector' and c and c.collector_id != u.id:
         raise HTTPException(403, 'Pagamento fora da sua carteira')
-    buf = make_receipt_pdf(p, s)
-    return StreamingResponse(buf, media_type='application/pdf',
-                             headers={'Content-Disposition': f'attachment; filename="recibo-{payment_id}.pdf"'})
+    buf = make_receipt_pdf(s, p)
+    return StreamingResponse(buf, media_type='application/pdf', headers={'Content-Disposition': f'attachment; filename=recibo-{payment_id}.pdf'})
