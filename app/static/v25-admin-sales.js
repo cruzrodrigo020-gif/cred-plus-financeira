@@ -147,3 +147,55 @@ async function saleSendContract(id){
     toast('Contrato enviado pelo WhatsApp');
   }catch(e){toast(e.message)}
 }
+
+
+/* Navegação final: este arquivo é carregado por último para impedir que módulos antigos removam Vendas. */
+renderNav=function(){
+  const items=[
+    ['dashboard','📊 Dashboard'],
+    ['clients','👥 Clientes'],
+    ['sales','🛒 Vendas'],
+    ['contracts','📄 Contratos'],
+    ['installments','📅 Parcelas detalhadas'],
+    ['collectors','🧭 Cobradores'],
+    ['goals','🎯 Metas e comissão'],
+    ['route','🗺️ Agenda / Rota'],
+    ['analytics','📈 Inadimplência'],
+    ['closings','🧾 Fechamentos'],
+    ['cash','💰 Caixa'],
+    ['reports','📁 Relatórios PDF'],
+    ['appusers','👤 Usuários do App'],
+    ['users','🧑‍💼 Usuários'],
+    ['chat','💬 Chat']
+  ].filter(x=>!(U?.role!=='admin'&&['sales','collectors','cash','reports','appusers','users'].includes(x[0])));
+  $('nav').innerHTML=items.map(([k,l])=>`<button class="${PAGE===k?'active':''}" onclick="go('${k}')">${l}${k==='chat'?'<span id="adminChatNavBadge"></span>':''}</button>`).join('')+`<div class="sep"></div><button onclick="logout()">🚪 Sair</button>`;
+  if(typeof refreshAdminChatBadge==='function') refreshAdminChatBadge();
+};
+
+go=async function(p){
+  PAGE=p;
+  renderNav();
+  const titles={
+    dashboard:'Dashboard Premium',
+    clients:'Clientes',
+    sales:'Vendas',
+    contracts:'Contratos',
+    installments:'Parcelas detalhadas',
+    collectors:'Central de Cobradores',
+    goals:'Metas e Comissão',
+    route:'Agenda e Rota de Cobrança',
+    analytics:'Painel de Inadimplência',
+    closings:'Fechamentos',
+    cash:'Caixa',
+    reports:'Relatórios PDF',
+    appusers:'Usuários do App',
+    users:'Usuários',
+    chat:'Chat interno'
+  };
+  $('title').textContent=titles[p]||p;
+  try{
+    const fn=window['render_'+p];
+    if(typeof fn!=='function') throw new Error('Tela indisponível.');
+    await fn();
+  }catch(e){toast(e.message)}
+};
