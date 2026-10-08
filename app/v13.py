@@ -20,6 +20,7 @@ from app.v19_multi_public import router as multi_public_router
 from app.v20_subscriptions import router as subscriptions_router
 from app.v22_delinquency import router as delinquency_router
 from app.v24_sales import router as sales_router
+from app.v25_admin_sales import router as admin_sales_router
 
 app.title = 'CRED+ Financeira Premium'
 app.version = '12.20.0'
@@ -35,13 +36,14 @@ app.include_router(multi_public_router)
 app.include_router(subscriptions_router)
 app.include_router(delinquency_router)
 app.include_router(sales_router)
+app.include_router(admin_sales_router)
 
 
 @app.middleware('http')
 async def no_cache_app_pages(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v13-delete.js' or path == '/static/v18-reports.js' or path.startswith('/static/multi-') or path.startswith('/static/public-multi-client.') or path == '/static/v20-subscriptions.js' or path == '/static/v21-contract-edit.js' or path == '/static/v22-delinquency.js' or path == '/static/v23-installment-order.js' or path == '/static/v24-sales.js' or path.startswith('/painel/cliente/') or path.startswith('/vendas/contrato/'):
+    if path in ('/', '/cobrador', '/cobrador/', '/cadastro', '/cadastro/', '/painel', '/painel/', '/painel/cadastro', '/painel/cadastro/') or path.startswith('/static/chat-') or path == '/static/chat.css' or path == '/static/v17-payment-actions.js' or path.startswith('/static/public-register.') or path == '/static/v12-core.js' or path == '/static/v12-extra.js' or path == '/static/v12.css' or path == '/static/v13-delete.js' or path == '/static/v18-reports.js' or path.startswith('/static/multi-') or path.startswith('/static/public-multi-client.') or path == '/static/v20-subscriptions.js' or path == '/static/v21-contract-edit.js' or path == '/static/v22-delinquency.js' or path == '/static/v23-installment-order.js' or path == '/static/v24-sales.js' or path == '/static/v25-admin-sales.js' or path.startswith('/painel/cliente/') or path.startswith('/vendas/contrato/') or path.startswith('/vendas/contrato-admin/'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
