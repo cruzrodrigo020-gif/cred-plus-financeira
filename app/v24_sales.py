@@ -116,6 +116,7 @@ def sale_to_dict(s: Session, sale: LenderSale):
         'status': sale.status,
         'paid_installments': paid,
         'created_at': sale.created_at.isoformat() if sale.created_at else '',
+        'contract_path': f'/vendas/contrato/{sale.share_token}.pdf',
     }
 
 
