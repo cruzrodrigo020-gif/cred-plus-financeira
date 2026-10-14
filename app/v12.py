@@ -77,7 +77,20 @@ def dashboard(authorization: Optional[str] = Header(None), s: Session = Depends(
     if u.role == 'collector':
         iq = iq.filter(Contract.collector_id == u.id)
     installments = iq.all()
-    receivable = sum(max(0, i.amount - i.paid_amount) for i in installments if i.status != 'paid')
+    loan_receivable = sum(max(0, i.amount - i.paid_amount) for i in installments if i.status != 'paid')
+    sales_receivable = 0.0
+    if u.role == 'admin':
+        # As vendas do painel administrativo também fazem parte do total a receber.
+        # Import local evita dependência circular durante a inicialização dos módulos.
+        from app.v25_admin_sales import AdminSaleInstallment
+        sale_installments = s.query(AdminSaleInstallment).filter(
+            AdminSaleInstallment.status != 'paid'
+        ).all()
+        sales_receivable = sum(
+            max(0, float(i.amount or 0) - float(i.paid_amount or 0))
+            for i in sale_installments
+        )
+    receivable = loan_receivable + sales_receivable
     overdue = sum(max(0, i.amount - i.paid_amount) for i in installments if i.status != 'paid' and i.due_date < today_)
     pq = s.query(Payment)
     if u.role == 'collector':
@@ -115,7 +128,9 @@ def dashboard(authorization: Optional[str] = Header(None), s: Session = Depends(
             })
     return {
         'cash': cash_in - cash_out,
-        'receivable': receivable,
+        'receivable': round(receivable, 2),
+        'receivable_loans': round(loan_receivable, 2),
+        'receivable_sales': round(sales_receivable, 2),
         'overdue': overdue,
         'received_today': received_today,
         'clients': cq.count(),
