@@ -50,9 +50,9 @@ function contractPreview(){
   const p=Number($('principal')?.value||0),n=Math.max(1,Number($('nInst')?.value||1));
   const periodicity=agreement?'monthly':selected.dataset.periodicity;
   const rate=agreement?Number($('customRate')?.value||0):Number(selected.dataset.rate||0);
-  const count=periodicity==='final'?1:n;
+  const count=periodicity==='final'?1:(periodicity==='weekly'?4:n);
   const total=p*(1+rate/100);
-  const cadence=periodicity==='monthly'?'Mensal':(periodicity==='final'?'Pagamento único':'Diário');
+  const cadence=periodicity==='monthly'?'Mensal':(periodicity==='final'?'Pagamento único':(periodicity==='weekly'?'Semanal • 4 semanas':'Diário'));
   $('preview').innerHTML=`Tipo: <b>${agreement?'Acordo':'Empréstimo'}</b><br>Periodicidade: <b>${cadence}</b><br>Juros: <b>${rate.toFixed(2)}%</b><br>Total: <b>${money(total)}</b><br>Parcelas: <b>${count}</b><br>Valor médio: <b>${money(total/count)}</b>`;
 }
 
