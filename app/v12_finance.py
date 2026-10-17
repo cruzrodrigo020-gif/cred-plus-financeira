@@ -86,9 +86,11 @@ def create_contract(
         raise HTTPException(400, 'Valor e parcelas devem ser maiores que zero')
     if p.periodicity == 'monthly' and installments > 10:
         raise HTTPException(400, 'Acordos podem ter no máximo 10 parcelas mensais')
+    if p.periodicity == 'weekly':
+        installments = 4
     due = parse_date(first_due, 'primeiro vencimento')
-    n = 1 if p.periodicity == 'final' else installments
-    rate = p.rate
+    n = 1 if p.periodicity == 'final' else (4 if p.periodicity == 'weekly' else installments)
+    rate = 30.0 if p.periodicity == 'weekly' else p.rate
     if p.periodicity == 'monthly':
         if custom_rate is None or custom_rate < 0:
             raise HTTPException(400, 'Informe a taxa de juros do acordo')
@@ -100,7 +102,7 @@ def create_contract(
     for idx in range(n):
         value = base if idx < n - 1 else round(total - running, 2)
         values.append(value); running = round(running + value, 2)
-    prefix = 'ACD-' if p.periodicity == 'monthly' else 'CTR-'
+    prefix = 'ACD-' if p.periodicity == 'monthly' else ('SEM-' if p.periodicity == 'weekly' else 'CTR-')
     number = prefix + datetime.now().strftime('%y%m%d%H%M%S%f')[-12:]
     x = Contract(number=number, client_id=c.id, principal=principal, total=total, installments=n,
                  installment_value=round(total / n, 2), first_due=due, rate=rate,
@@ -111,6 +113,8 @@ def create_contract(
             item_due = due
         elif p.periodicity == 'monthly':
             item_due = add_months(due, idx - 1)
+        elif p.periodicity == 'weekly':
+            item_due = due + timedelta(days=7 * (idx - 1))
         else:
             item_due = due + timedelta(days=idx - 1)
         s.add(Installment(contract_id=x.id, number=idx, due_date=item_due, amount=value, status='pending', paid_amount=0))
@@ -149,6 +153,9 @@ def edit_contract(
         raise HTTPException(400, 'A quantidade de parcelas deve ser maior que zero')
     if c.periodicity == 'monthly' and installments > 10:
         raise HTTPException(400, 'Acordos podem ter no máximo 10 parcelas mensais')
+    if c.periodicity == 'weekly':
+        installments = 4
+        rate = 30.0
 
     has_payments = s.query(Payment).filter_by(contract_id=c.id).first() is not None
     has_paid_amount = s.query(Installment).filter(
@@ -162,7 +169,7 @@ def edit_contract(
         )
 
     due = parse_date(first_due, 'primeiro vencimento')
-    n = 1 if c.periodicity == 'final' else installments
+    n = 1 if c.periodicity == 'final' else (4 if c.periodicity == 'weekly' else installments)
     total = round(principal * (1 + rate / 100), 2)
 
     values = []
@@ -197,6 +204,8 @@ def edit_contract(
             item_due = due
         elif c.periodicity == 'monthly':
             item_due = add_months(due, idx - 1)
+        elif c.periodicity == 'weekly':
+            item_due = due + timedelta(days=7 * (idx - 1))
         else:
             item_due = due + timedelta(days=idx - 1)
         s.add(Installment(
