@@ -150,6 +150,8 @@ def renewal_preview(contract_id: int, authorization: Optional[str] = Header(None
     p = s.get(Product, c.product_id)
     if c.periodicity == 'monthly':
         recommended = _add_months(date.today(), 1)
+    elif c.periodicity == 'weekly':
+        recommended = date.today() + timedelta(days=7)
     else:
         recommended = date.today() + timedelta(days=(p.days if c.periodicity == 'final' and p else 1))
     return {
@@ -210,7 +212,7 @@ def renew_interest(
     c.status = 'renewed'
 
     total = _money(float(c.principal or 0) * (1 + float(c.rate or 0) / 100))
-    count = max(1, int(c.installments or 1))
+    count = 4 if c.periodicity == 'weekly' else max(1, int(c.installments or 1))
     values = _split_values(total, count)
     number = 'REN-' + datetime.now().strftime('%y%m%d%H%M%S%f')[-12:]
     new_contract = Contract(
@@ -225,6 +227,8 @@ def renew_interest(
             item_due = due
         elif c.periodicity == 'monthly':
             item_due = _add_months(due, idx - 1)
+        elif c.periodicity == 'weekly':
+            item_due = due + timedelta(days=7 * (idx - 1))
         else:
             item_due = due + timedelta(days=idx - 1)
         s.add(Installment(contract_id=new_contract.id, number=idx, due_date=item_due,
