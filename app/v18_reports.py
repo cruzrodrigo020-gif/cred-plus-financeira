@@ -33,6 +33,7 @@ def fmt_date(value):
 def contract_type(periodicity):
     return {
         'daily': 'Emprestimo diario',
+        'weekly': 'Emprestimo semanal (4 semanas)',
         'final': 'Emprestimo com pagamento final',
         'monthly': 'Acordo mensal',
     }.get(periodicity, 'Emprestimo')
