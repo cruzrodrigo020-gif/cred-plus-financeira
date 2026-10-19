@@ -142,9 +142,15 @@ async function saleContract(id){
 
 async function saleSendContract(id){
   try{
-    toast('Enviando contrato pelo WhatsApp...');
-    await api('/api/sales/'+id+'/send-contract',{method:'POST'});
-    toast('Contrato enviado pelo WhatsApp');
+    const sale=await api('/api/sales/'+id);
+    const number=String(sale.client_whatsapp||'').replace(/[^0-9]/g,'');
+    const phone=number.length===10||number.length===11?'55'+number:number;
+    if(phone.length<12){toast('Cadastre o WhatsApp do cliente com DDD');return;}
+    const pdf=new URL(sale.contract_path,window.location.origin).href;
+    const msg='Olá, '+sale.client+'. Segue o contrato de compra e venda de '+sale.item_name+', no valor de '+money(sale.sale_value)+': '+pdf;
+    const url='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
+    window.open(url,'_blank');
+    toast('Conversa aberta. Confirme o envio no WhatsApp.');
   }catch(e){toast(e.message)}
 }
 
