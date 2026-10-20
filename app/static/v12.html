@@ -19,6 +19,17 @@
     <div class="field"><label>Usuário</label><input id="loginUser" autocomplete="username"></div>
     <div class="field"><label>Senha</label><input id="loginPass" type="password" autocomplete="current-password"></div>
     <button class="btn btn-primary full" onclick="doLogin()">Entrar no painel</button>
+    <button type="button" class="btn btn-soft full" style="margin-top:10px" onclick="togglePasswordRecovery()">Esqueci minha senha / Redefinir senha</button>
+    <form id="passwordRecoveryForm" class="hidden" style="margin-top:14px" onsubmit="submitPasswordRecovery(event)">
+      <p class="muted">Para sua segurança, informe sua senha atual ou o código de recuperação configurado pelo responsável no Railway.</p>
+      <div class="field"><label>Usuário</label><input name="username" autocomplete="username" required value="admin"></div>
+      <div class="field"><label>Senha atual (se souber)</label><input name="current_password" type="password" autocomplete="current-password"></div>
+      <div class="field"><label>Código de recuperação (se esqueceu a senha)</label><input name="recovery_code" type="password" autocomplete="off"></div>
+      <div class="field"><label>Nova senha (mínimo 12 caracteres, letras e números)</label><input name="new_password" type="password" autocomplete="new-password" minlength="12" required></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="confirmRecoveryPassword" type="password" autocomplete="new-password" minlength="12" required></div>
+      <button class="btn btn-primary full" type="submit">Redefinir senha</button>
+      <p id="recoveryMsg" class="muted" role="status"></p>
+    </form>
     <div id="loginMsg" class="muted" style="margin-top:10px"></div>
   </div>
 </div>
@@ -45,4 +56,5 @@
 <script src="/static/v23-installment-order.js?v=1"></script>
 <script src="/static/v18-reports.js?v=2"></script>
 <script src="/static/v20-subscriptions.js?v=2"></script>\n<script src="/static/v25-admin-sales.js?v=4"></script>
+<script src="/static/v26-password-recovery.js?v=1"></script>
 </body></html>
