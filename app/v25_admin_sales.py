@@ -334,6 +334,83 @@ def create_sale(
     return sale_dict(s, sale)
 
 
+
+@router.put('/api/sales/{sale_id}')
+def edit_sale(
+    sale_id: int,
+    client_id: int = Form(...),
+    item_name: str = Form(...),
+    item_description: str = Form(''),
+    sale_value: float = Form(...),
+    installments: int = Form(...),
+    first_due: str = Form(...),
+    authorization: Optional[str] = Header(None),
+    s: Session = Depends(db),
+):
+    require_admin_user(authorization, s)
+    sale = require_sale(s, sale_id)
+    client = s.get(Client, client_id)
+    if not client:
+        raise HTTPException(404, 'Cliente não encontrado')
+    if len(item_name.strip()) < 2 or len(item_name) > 220:
+        raise HTTPException(400, 'Informe um item válido')
+    if not 0 < sale_value <= 100000000:
+        raise HTTPException(400, 'Informe um valor de venda válido')
+    if installments < 1 or installments > 12:
+        raise HTTPException(400, 'Escolha entre 1 e 12 parcelas')
+    due = parse_date(first_due, 'primeiro vencimento')
+    items = s.query(AdminSaleInstallment).filter_by(sale_id=sale.id).order_by(AdminSaleInstallment.number).all()
+    has_payment = any(i.status == 'paid' or float(i.paid_amount or 0) > 0 for i in items)
+    if has_payment and (
+        sale.client_id != client_id or
+        round(sale.sale_value, 2) != round(sale_value, 2) or
+        sale.installments != installments or
+        sale.first_due != due
+    ):
+        raise HTTPException(409, 'Há parcelas pagas. Somente nome e descrição do item podem ser editados.')
+    sale.item_name = item_name.strip()
+    sale.item_description = item_description.strip()
+    if not has_payment:
+        sale.client_id = client_id
+        sale.sale_value = round(sale_value, 2)
+        sale.installments = installments
+        sale.installment_value = round(sale_value / installments, 2)
+        sale.first_due = due
+        sale.status = 'active'
+        for item in items:
+            s.delete(item)
+        s.flush()
+        cents = int(round(sale_value * 100))
+        base = cents // installments
+        amounts = [base / 100 for _ in range(installments)]
+        amounts[-1] = round(sale_value - sum(amounts[:-1]), 2)
+        for index, amount in enumerate(amounts):
+            s.add(AdminSaleInstallment(
+                sale_id=sale.id, number=index + 1,
+                due_date=add_months(due, index), amount=amount,
+                status='pending', paid_amount=0,
+            ))
+    s.commit()
+    return sale_dict(s, sale)
+
+
+@router.delete('/api/sales/{sale_id}')
+def delete_sale(
+    sale_id: int,
+    authorization: Optional[str] = Header(None),
+    s: Session = Depends(db),
+):
+    require_admin_user(authorization, s)
+    sale = require_sale(s, sale_id)
+    items = s.query(AdminSaleInstallment).filter_by(sale_id=sale.id).all()
+    if any(i.status == 'paid' or float(i.paid_amount or 0) > 0 for i in items):
+        raise HTTPException(409, 'Não é possível excluir um contrato com pagamentos registrados.')
+    for item in items:
+        s.delete(item)
+    s.delete(sale)
+    s.commit()
+    return {'ok': True}
+
 @router.get('/api/sales/{sale_id}')
 def sale_detail(sale_id: int, authorization: Optional[str] = Header(None), s: Session = Depends(db)):
     require_admin_user(authorization, s)
