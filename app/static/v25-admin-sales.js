@@ -36,6 +36,8 @@ async function render_sales(){
             <button class="btn btn-soft btn-xs" onclick="saleView(${s.id})">Abrir</button>
             <button class="btn btn-primary btn-xs" onclick="saleContract(${s.id})">Contrato</button>
             <button class="btn btn-ok btn-xs" onclick="saleSendContract(${s.id})">WhatsApp</button>
+            <button class="btn btn-soft btn-xs" onclick="saleEdit(${s.id})">Editar</button>
+            <button class="btn btn-soft btn-xs" onclick="saleDelete(${s.id})">Excluir</button>
           </div></td>
         </tr>`).join('')||'<tr><td colspan="8" class="empty">Nenhuma venda cadastrada.</td></tr>'}
         </tbody>
@@ -114,6 +116,57 @@ async function saleView(id){
         </tr>`).join('')}
       </table></div>
     </div>`);
+}
+
+
+async function saleEdit(id){
+  try{
+    const d=await api('/api/sales/'+id);
+    const clients=window.ADMIN_SALE_CLIENTS||[];
+    const paid=d.items.some(i=>i.status==='paid'||Number(i.paid_amount||0)>0);
+    const options=Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+(d.installments===i+1?'selected':'')+'>'+(i+1)+'x</option>').join('');
+    openModal(`
+      <div class="modal-head"><div><h2>Editar contrato</h2><div class="muted">${esc(d.number)}</div></div><button class="btn btn-soft" onclick="closeModal()">Fechar</button></div>
+      ${paid?'<p class="muted">Este contrato possui parcelas pagas. Apenas o nome e a descrição do item podem ser alterados.</p>':''}
+      <form id="saleEditForm">
+        <div class="form-section"><div class="form-grid">
+          <div class="field wide"><label>Cliente</label><select name="client_id" ${paid?'disabled':''} required>${clients.map(x=>'<option value="'+x.id+'" '+(x.id===d.client_id?'selected':'')+'>'+esc(x.name)+'</option>').join('')}</select></div>
+          <div class="field wide"><label>Item vendido</label><input name="item_name" required maxlength="220" value="${esc(d.item_name)}"></div>
+          <div class="field wide"><label>Descrição</label><textarea name="item_description">${esc(d.item_description||'')}</textarea></div>
+          <div class="field"><label>Valor da venda</label><input name="sale_value" type="number" step="0.01" min="0.01" value="${d.sale_value}" ${paid?'disabled':''} required></div>
+          <div class="field"><label>Parcelas</label><select name="installments" ${paid?'disabled':''} required>${options}</select></div>
+          <div class="field"><label>Primeiro vencimento</label><input name="first_due" type="date" value="${d.first_due}" ${paid?'disabled':''} required></div>
+        </div></div>
+        <div class="foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" type="submit">Salvar alterações</button></div>
+      </form>`);
+    const form=$('saleEditForm');
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      const data=new FormData(form);
+      if(paid){
+        data.set('client_id',String(d.client_id));
+        data.set('sale_value',String(d.sale_value));
+        data.set('installments',String(d.installments));
+        data.set('first_due',d.first_due);
+      }
+      try{
+        await api('/api/sales/'+id,{method:'PUT',body:data});
+        closeModal();toast('Contrato atualizado');await render_sales();
+      }catch(error){toast(error.message)}
+    };
+  }catch(error){toast(error.message)}
+}
+
+async function saleDelete(id){
+  try{
+    const d=await api('/api/sales/'+id);
+    if(d.items.some(i=>i.status==='paid'||Number(i.paid_amount||0)>0)){
+      toast('Não é possível excluir contrato com parcelas pagas');return;
+    }
+    if(!confirm('Excluir definitivamente o contrato '+d.number+' de '+d.client+'? Esta ação não pode ser desfeita.'))return;
+    await api('/api/sales/'+id,{method:'DELETE'});
+    closeModal();toast('Contrato excluído');await render_sales();
+  }catch(error){toast(error.message)}
 }
 
 async function salePay(saleId,itemId){
