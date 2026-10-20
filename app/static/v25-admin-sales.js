@@ -172,8 +172,9 @@ renderNav=function(){
     ['reports','📁 Relatórios PDF'],
     ['appusers','👤 Usuários do App'],
     ['users','🧑‍💼 Usuários'],
-    ['chat','💬 Chat']
-  ].filter(x=>!(U?.role!=='admin'&&['sales','collectors','cash','reports','appusers','users'].includes(x[0])));
+    ['chat','💬 Chat'],
+    ['security','🔐 Segurança e Senha']
+  ].filter(x=>!(U?.role!=='admin'&&['sales','collectors','cash','reports','appusers','users','security'].includes(x[0])));
   $('nav').innerHTML=items.map(([k,l])=>`<button class="${PAGE===k?'active':''}" onclick="go('${k}')">${l}${k==='chat'?'<span id="adminChatNavBadge"></span>':''}</button>`).join('')+`<div class="sep"></div><button onclick="logout()">🚪 Sair</button>`;
   if(typeof refreshAdminChatBadge==='function') refreshAdminChatBadge();
 };
@@ -196,7 +197,8 @@ go=async function(p){
     reports:'Relatórios PDF',
     appusers:'Usuários do App',
     users:'Usuários',
-    chat:'Chat interno'
+    chat:'Chat interno',
+    security:'Segurança e Senha'
   };
   $('title').textContent=titles[p]||p;
   try{
