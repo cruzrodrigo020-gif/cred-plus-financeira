@@ -15,7 +15,7 @@ function projectionRows(title, data, kind){
   }).join('');
   const colspan=kind==='sales'?6:8;
   const footer=kind==='loans'
-    ? 'Juros previstos: '+money(data.interest)+' | Total das parcelas: '+money(data.gross)+' | Capital estimado: '+money(data.capital)
+    ? 'Capital previsto: '+money(data.capital)+' + juros previstos: '+money(data.interest)+' = total dos empréstimos: '+money(data.gross)
     : kind==='agreements'
       ? 'A receber: '+money(data.total)+' | Juros estimados embutidos: '+money(data.interest)+' | Capital estimado: '+money(data.capital)
       : 'Parcelas de vendas a receber: '+money(data.total)+' (não representa lucro)';
@@ -29,23 +29,24 @@ function projectionClientTable(data){
   for(const [category, group] of [['loans',data.loans],['agreements',data.agreements],['sales',data.sales]]){
     for(const item of group.items){
       const key=item.client;
-      if(!map.has(key))map.set(key,{client:key,loans:0,agreements:0,sales:0});
+      if(!map.has(key))map.set(key,{client:key,loans:0,loanCapital:0,agreements:0,sales:0});
       const r=map.get(key);
       r[category]+=category==='loans'?Number(item.interest):Number(item.amount);
+      if(category==='loans')r.loanCapital+=Number(item.capital);
     }
   }
   const rows=Array.from(map.values()).sort((a,b)=>a.client.localeCompare(b.client,'pt-BR')).map(x=>
-    '<tr><td>'+esc(x.client)+'</td><td>'+money(x.loans)+'</td><td>'+money(x.agreements)+'</td><td>'+money(x.sales)+'</td><td><b>'+money(x.loans+x.agreements+x.sales)+'</b></td></tr>'
+    '<tr><td>'+esc(x.client)+'</td><td>'+money(x.loanCapital)+'</td><td>'+money(x.loans)+'</td><td><b>'+money(x.loanCapital+x.loans)+'</b></td><td>'+money(x.agreements)+'</td><td>'+money(x.sales)+'</td><td><b>'+money(x.loanCapital+x.loans+x.agreements+x.sales)+'</b></td></tr>'
   ).join('');
-  return '<div class="card"><h2>Resumo por cliente</h2><div class="table-wrap"><table><tr><th>Cliente</th><th>Juros dos empréstimos</th><th>Acordos a receber</th><th>Vendas a receber</th><th>Total combinado</th></tr>'
-    +(rows||'<tr><td colspan="5">Sem clientes com vencimentos no período.</td></tr>')
+  return '<div class="card"><h2>Resumo por cliente</h2><div class="table-wrap"><table><tr><th>Cliente</th><th>Capital dos empréstimos</th><th>Juros dos empréstimos</th><th>Total dos empréstimos</th><th>Acordos a receber</th><th>Vendas a receber</th><th>Total geral a receber</th></tr>'
+    +(rows||'<tr><td colspan="7">Sem clientes com vencimentos no período.</td></tr>')
     +'</table></div></div>';
 }
 
 function projectionDailyTable(data){
-  const rows=data.daily.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+money(x.loans_interest)+'</td><td>'+money(x.agreements)+'</td><td>'+money(x.sales)+'</td><td><b>'+money(x.total)+'</b></td></tr>').join('');
-  return '<div class="card"><h2>Previsão diária de recebimentos</h2><div class="table-wrap"><table><tr><th>Data</th><th>Juros empréstimos</th><th>Acordos</th><th>Vendas</th><th>Total selecionado</th></tr>'
-    +(rows||'<tr><td colspan="5">Nenhum vencimento futuro neste mês.</td></tr>')+'</table></div></div>';
+  const rows=data.daily.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+money(x.loans_capital)+'</td><td>'+money(x.loans_interest)+'</td><td><b>'+money(x.loans_gross)+'</b></td><td>'+money(x.agreements)+'</td><td>'+money(x.sales)+'</td><td><b>'+money(x.total_gross)+'</b></td></tr>').join('');
+  return '<div class="card"><h2>Previsão diária de recebimentos</h2><div class="table-wrap"><table><tr><th>Data</th><th>Capital empréstimos</th><th>Juros empréstimos</th><th>Total empréstimos</th><th>Acordos</th><th>Vendas</th><th>Total geral</th></tr>'
+    +(rows||'<tr><td colspan="7">Nenhum vencimento futuro neste mês.</td></tr>')+'</table></div></div>';
 }
 
 function exportMonthProjection(){
@@ -87,10 +88,13 @@ async function render_projection(){
     '<div class="card"><div class="toolbar"><div><h2>📈 Projeção financeira até '+fmt(d.through)+'</h2><div class="muted">Período: '+fmt(d.as_of)+' a '+fmt(d.through)+' • atualizado com os registros atuais</div></div><div class="actions"><button class="btn btn-soft" onclick="render_projection()">Atualizar</button><button class="btn btn-primary" onclick="exportMonthProjection()">Exportar CSV</button></div></div>'
     +legend+'</div>'
     +'<div class="kpis">'
-    +'<div class="kpi"><div class="lab">Juros previstos • empréstimos</div><div class="val">'+money(d.loans.total)+'</div><div class="muted">Capital separado: '+money(d.loans.capital)+'</div></div>'
+    +'<div class="kpi"><div class="lab">Capital previsto • empréstimos</div><div class="val">'+money(d.loans.capital)+'</div><div class="muted">Devolução do valor emprestado</div></div>'
+    +'<div class="kpi"><div class="lab">Juros previstos • empréstimos</div><div class="val">'+money(d.loans.interest)+'</div><div class="muted">Receita estimada de juros</div></div>'
+    +'<div class="kpi"><div class="lab">Total dos empréstimos (capital + juros)</div><div class="val">'+money(d.loans.gross)+'</div><div class="muted">Parcelas de empréstimos a receber até o fim do mês</div></div>'
     +'<div class="kpi"><div class="lab">Acordos a receber</div><div class="val">'+money(d.agreements.total)+'</div><div class="muted">Juros estimados: '+money(d.agreements.interest)+'</div></div>'
     +'<div class="kpi"><div class="lab">Parcelas de vendas</div><div class="val">'+money(d.sales.total)+'</div><div class="muted">Receita bruta, não lucro</div></div>'
-    +'<div class="kpi"><div class="lab">Total combinado previsto</div><div class="val">'+money(d.total_projected)+'</div><div class="muted">Juros empréstimos + acordos integrais + vendas integrais</div></div>'
+    +'<div class="kpi"><div class="lab">Total geral a receber</div><div class="val">'+money(d.total_projected_gross)+'</div><div class="muted">Empréstimos (capital + juros) + acordos + vendas</div></div>'
+    +'<div class="kpi"><div class="lab">Total sem capital dos empréstimos</div><div class="val">'+money(d.total_projected)+'</div><div class="muted">Juros dos empréstimos + acordos integrais + vendas integrais; não é lucro líquido</div></div>'
     +'</div>'
     +projectionDailyTable(d)
     +projectionClientTable(d)
@@ -115,7 +119,7 @@ render_dashboard=async function(){
   try{
     const d=await api('/api/projections/month-end');
     const el=document.getElementById('projectionDashboardSummary');
-    if(el)el.textContent='Juros empréstimos: '+money(d.loans.total)+' | Acordos: '+money(d.agreements.total)+' | Vendas: '+money(d.sales.total)+' | Total selecionado: '+money(d.total_projected);
+    if(el)el.textContent='Empréstimos: capital '+money(d.loans.capital)+' + juros '+money(d.loans.interest)+' = '+money(d.loans.gross)+' | Acordos: '+money(d.agreements.total)+' | Vendas: '+money(d.sales.total)+' | Total geral: '+money(d.total_projected_gross);
   }catch(e){
     const el=document.getElementById('projectionDashboardSummary');
     if(el)el.textContent='Não foi possível consultar a projeção agora. Acesse o relatório para tentar novamente.';
