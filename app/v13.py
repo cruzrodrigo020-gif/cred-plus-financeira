@@ -21,6 +21,7 @@ from app.v20_subscriptions import router as subscriptions_router
 from app.v22_delinquency import router as delinquency_router
 from app.v24_sales import router as sales_router
 from app.v25_admin_sales import router as admin_sales_router
+from app.v28_month_projection import router as month_projection_router
 from app.v26_password_recovery import router as password_recovery_router
 
 app.title = 'CRED+ Financeira Premium'
@@ -38,6 +39,7 @@ app.include_router(subscriptions_router)
 app.include_router(delinquency_router)
 app.include_router(sales_router)
 app.include_router(admin_sales_router)
+app.include_router(month_projection_router)
 app.include_router(password_recovery_router)
 
 
