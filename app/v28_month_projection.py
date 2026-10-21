@@ -140,7 +140,9 @@ def month_end_projection(
     for dt, values in sorted(daily.items()):
         row = {'date': dt}
         row.update({key: _amount(value) for key, value in values.items()})
+        row['loans_capital'] = _amount(values['loans_gross'] - values['loans_interest'])
         row['total'] = _amount(values['loans_interest'] + values['agreements'] + values['sales'])
+        row['total_gross'] = _amount(values['loans_gross'] + values['agreements'] + values['sales'])
         days.append(row)
 
     return {
@@ -151,5 +153,6 @@ def month_end_projection(
         'agreements': results['agreements'],
         'sales': results['sales'],
         'total_projected': _amount(_cents(results['loans']['total']) + _cents(results['agreements']['total']) + _cents(results['sales']['total'])),
+        'total_projected_gross': _amount(_cents(results['loans']['gross']) + _cents(results['agreements']['total']) + _cents(results['sales']['total'])),
         'daily': days,
     }
