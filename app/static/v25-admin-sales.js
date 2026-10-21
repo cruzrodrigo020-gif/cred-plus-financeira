@@ -214,6 +214,7 @@ renderNav=function(){
     ['dashboard','📊 Dashboard'],
     ['clients','👥 Clientes'],
     ['sales','🛒 Vendas'],
+    ['projection','📈 Projeção do mês'],
     ['contracts','📄 Contratos'],
     ['installments','📅 Parcelas detalhadas'],
     ['collectors','🧭 Cobradores'],
@@ -227,7 +228,7 @@ renderNav=function(){
     ['users','🧑‍💼 Usuários'],
     ['chat','💬 Chat'],
     ['security','🔐 Segurança e Senha']
-  ].filter(x=>!(U?.role!=='admin'&&['sales','collectors','cash','reports','appusers','users','security'].includes(x[0])));
+  ].filter(x=>!(U?.role!=='admin'&&['sales','projection','collectors','cash','reports','appusers','users','security'].includes(x[0])));
   $('nav').innerHTML=items.map(([k,l])=>`<button class="${PAGE===k?'active':''}" onclick="go('${k}')">${l}${k==='chat'?'<span id="adminChatNavBadge"></span>':''}</button>`).join('')+`<div class="sep"></div><button onclick="logout()">🚪 Sair</button>`;
   if(typeof refreshAdminChatBadge==='function') refreshAdminChatBadge();
 };
@@ -239,6 +240,7 @@ go=async function(p){
     dashboard:'Dashboard Premium',
     clients:'Clientes',
     sales:'Vendas',
+    projection:'Projeção até o fim do mês',
     contracts:'Contratos',
     installments:'Parcelas detalhadas',
     collectors:'Central de Cobradores',
