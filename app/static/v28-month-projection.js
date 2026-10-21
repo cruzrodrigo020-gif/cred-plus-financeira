@@ -99,3 +99,25 @@ async function render_projection(){
     +projectionRows('Vendas: parcelas previstas',d.sales,'sales')
     +'<div class="card"><h2>Parcelas vencidas (fora da projeção)</h2><p>Empréstimos: <b>'+money(d.loans.overdue)+'</b> • Acordos: <b>'+money(d.agreements.overdue)+'</b> • Vendas: <b>'+money(d.sales.overdue)+'</b></p><p class="muted">Esses saldos estão atrasados e não foram somados aos recebimentos com vencimento até o fim do mês. Eles podem ser recuperados, mas a data do recebimento é incerta.</p></div>';
 }
+
+
+/* Atalho e resumo discreto na Dashboard, sem alterar as contas existentes. */
+const _renderDashboardBeforeProjection=render_dashboard;
+render_dashboard=async function(){
+  await _renderDashboardBeforeProjection();
+  if(U?.role!=='admin')return;
+  const root=$('content');
+  if(!root)return;
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML='<div class="toolbar"><div><h2>📈 Projeção de recebimentos até o fim do mês</h2><div class="muted" id="projectionDashboardSummary">Calculando a previsão...</div></div><button class="btn btn-primary" onclick="go(\'projection\')">Ver relatório detalhado</button></div>';
+  root.prepend(card);
+  try{
+    const d=await api('/api/projections/month-end');
+    const el=document.getElementById('projectionDashboardSummary');
+    if(el)el.textContent='Juros empréstimos: '+money(d.loans.total)+' | Acordos: '+money(d.agreements.total)+' | Vendas: '+money(d.sales.total)+' | Total selecionado: '+money(d.total_projected);
+  }catch(e){
+    const el=document.getElementById('projectionDashboardSummary');
+    if(el)el.textContent='Não foi possível consultar a projeção agora. Acesse o relatório para tentar novamente.';
+  }
+};
